@@ -152,7 +152,9 @@ class Teams implements ReadableInterface, DestroyableInterface
         $Status->createDefault();
 
         // create default item type
-        $ItemsTypes = new ItemsTypes($newId);
+        $user = new Users();
+        $user->team = $newId;
+        $ItemsTypes = new ItemsTypes($user);
         $extra = array(
             'color' => '#32a100',
             'body' => '<p>Go to the admin panel to edit/add more items types!</p>',
@@ -192,11 +194,7 @@ class Teams implements ReadableInterface, DestroyableInterface
         $req = $this->Db->prepare($sql);
         $this->Db->execute($req);
 
-        $res = $req->fetchAll();
-        if ($res === false) {
-            return array();
-        }
-        return $res;
+        return $this->Db->fetchAll($req);
     }
 
     /**

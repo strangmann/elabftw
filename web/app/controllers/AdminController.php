@@ -10,11 +10,11 @@ declare(strict_types=1);
 
 namespace Elabftw\Elabftw;
 
+use function dirname;
 use Elabftw\Exceptions\DatabaseErrorException;
 use Elabftw\Exceptions\FilesystemErrorException;
 use Elabftw\Exceptions\IllegalActionException;
 use Elabftw\Exceptions\ImproperActionException;
-use Elabftw\Exceptions\InvalidCsrfTokenException;
 use Elabftw\Maps\Team;
 use Elabftw\Models\Teams;
 use Exception;
@@ -24,7 +24,7 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
  * Deal with requests sent from the admin page
  *
  */
-require_once \dirname(__DIR__) . '/init.inc.php';
+require_once dirname(__DIR__) . '/init.inc.php';
 
 $Response = new RedirectResponse('../../admin.php?tab=1');
 
@@ -32,9 +32,6 @@ try {
     if (!$App->Session->get('is_admin')) {
         throw new IllegalActionException('Non admin user tried to access admin controller.');
     }
-
-    // CSRF
-    $App->Csrf->validate();
 
     $Teams = new Teams($App->Users);
 
@@ -52,7 +49,7 @@ try {
 
     // DISPLAY RESULT
     $App->Session->getFlashBag()->add('ok', _('Saved'));
-} catch (ImproperActionException | InvalidCsrfTokenException $e) {
+} catch (ImproperActionException $e) {
     // show message to user
     $App->Session->getFlashBag()->add('ko', $e->getMessage());
 } catch (IllegalActionException $e) {

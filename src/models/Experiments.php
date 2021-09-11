@@ -12,6 +12,7 @@ namespace Elabftw\Models;
 
 use Elabftw\Elabftw\ContentParams;
 use Elabftw\Exceptions\IllegalActionException;
+use Elabftw\Exceptions\ImproperActionException;
 use Elabftw\Interfaces\EntityParamsInterface;
 use Elabftw\Maps\Team;
 use Elabftw\Services\Filter;
@@ -50,6 +51,10 @@ class Experiments extends AbstractEntity
             $canread = $templateArr['canread'];
             $canwrite = $templateArr['canwrite'];
         } else {
+            // no template, make sure admin didn't disallow it
+            if ($Team->getForceExpTpl() === 1) {
+                throw new ImproperActionException(_('Experiments must use a template!'));
+            }
             $title = _('Untitled');
             $body = $Team->getCommonTemplate();
             $canread = 'team';
@@ -201,11 +206,7 @@ class Experiments extends AbstractEntity
         $req = $this->Db->prepare($sql);
         $req->bindParam(':id', $this->id, PDO::PARAM_INT);
         $this->Db->execute($req);
-        $res = $req->fetchAll();
-        if ($res === false) {
-            return array();
-        }
-        return $res;
+        return $this->Db->fetchAll($req);
     }
 
     /**

@@ -21,7 +21,6 @@ import 'tinymce/plugins/imagetools';
 import 'tinymce/plugins/insertdatetime';
 import 'tinymce/plugins/link';
 import 'tinymce/plugins/lists';
-import '../../web/app/js/plugins/mention/plugin.js';
 import 'tinymce/plugins/pagebreak';
 import 'tinymce/plugins/paste';
 import 'tinymce/plugins/save';
@@ -47,40 +46,18 @@ import '../js/tinymce-langs/ru_RU.js';
 import '../js/tinymce-langs/sk_SK.js';
 import '../js/tinymce-langs/sl_SI.js';
 import '../js/tinymce-langs/zh_CN.js';
+import '../js/tinymce-plugins/mention/plugin.js';
 import EntityClass from './Entity.class';
-import { Entity, EntityType, Target } from './interfaces';
-
-let about;
-let type = 'experiments';
-let id = '0';
-let entityType: EntityType;
-
-if (document.getElementById('info')) {
-  about = document.getElementById('info').dataset;
-  type = about.type;
-  id = about.id;
-  if (about.type === 'experiments') {
-    entityType = EntityType.Experiment;
-  }
-  if (about.type === 'items') {
-    entityType = EntityType.Item;
-  }
-  if (about.type === 'experiments_templates') {
-    entityType = EntityType.Template;
-  }
-}
-
-const entity: Entity = {
-  type: entityType,
-  id: parseInt(id),
-};
+import Link from './Link.class';
+import { Target } from './interfaces';
+import { getEntity } from './misc';
 
 // AUTOSAVE
-let typingTimer: any;                // timer identifier
 const doneTypingInterval = 7000;  // time in ms between end of typing and save
 
 // called when you click the save button of tinymce
-export function quickSave(entity: Entity): void {
+export function quickSave(): void {
+  const entity = getEntity();
   const EntityC = new EntityClass(entity.type);
   EntityC.update(entity.id, Target.Body, tinymce.activeEditor.getContent()).then(() => {
     // detect if the session timedout
@@ -133,7 +110,7 @@ function doneTyping(): void {
     alert('Too many characters!!! Cannot save properly!!!');
     return;
   }
-  quickSave(entity);
+  quickSave();
 }
 
 // options for tinymce to pass to tinymce.init()
@@ -142,6 +119,7 @@ export function getTinymceBaseConfig(page: string): object {
   if (page !== 'admin') {
     plugins += ' autosave';
   }
+  const entity = getEntity();
 
   return {
     mode: 'specific_textareas',
@@ -174,36 +152,50 @@ export function getTinymceBaseConfig(page: string): object {
       {text: 'Perl', value: 'perl'},
       {text: 'Python', value: 'python'},
       {text: 'R', value: 'r'},
-      {text: 'Ruby', value: 'ruby'}
+      {text: 'Ruby', value: 'ruby'},
     ],
     language: $('#user-prefs').data('lang'),
     charmap_append: [ // eslint-disable-line @typescript-eslint/camelcase
       [0x2640, 'female sign'],
-      [0x2642, 'male sign']
+      [0x2642, 'male sign'],
     ],
     height: '500',
     mentions: {
       // use # for autocompletion
       delimiter: '#',
       // get the source from json with get request
-      source: function (query: string, process: any): void {
+      source: function(query: string, process: Function): void {
         const url = 'app/controllers/EntityAjaxController.php';
         $.getJSON(url, {
           mention: 1,
           term: query,
-          type: type,
+          type: entity.type,
         }).done(function(data) {
           process(data);
         });
-      }
+      },
+      insert: function(data): string {
+        if (data.type === 'items') {
+          const LinkC = new Link(entity);
+          LinkC.create(parseInt(data.id)).then((json) => {
+            if (json.res === true) {
+              // only reload children of links_div_id
+              $('#links_div_' + entity.id).load(window.location.href + ' #links_div_' + entity.id + ' > *');
+            }
+          });
+        }
+        return `<span><a href='${data.page}.php?mode=view&id=${data.id}'>${data.name}</a></span>`;
+      },
     },
     mobile: {
       theme: 'mobile',
       plugins: [ 'save', 'lists', 'link' ],
-      toolbar: [ 'undo', 'redo', 'bold', 'italic', 'underline', 'bullist', 'numlist', 'link' ]
+      toolbar: [ 'undo', 'redo', 'bold', 'italic', 'underline', 'bullist', 'numlist', 'link' ],
     },
     // keyboard shortcut to insert today's date at cursor in editor
     setup: (editor: any): void => {
+      // holds the timer setTimeout function
+      let typingTimer;
       // make the edges round
       editor.on('init', () => editor.getContainer().className += ' rounded');
       // add date+time button
@@ -212,7 +204,7 @@ export function getTinymceBaseConfig(page: string): object {
         tooltip: 'Insert timestamp',
         onAction: function() {
           editor.insertContent(`${getDatetime()} `);
-        }
+        },
       });
       // some shortcuts
       editor.addShortcut('ctrl+shift+d', 'add date/time at cursor', addDatetimeOnCursor);
@@ -235,16 +227,16 @@ export function getTinymceBaseConfig(page: string): object {
         selector: 'img',
         styles: {
           'float': 'left',
-          'margin': '0 10px 0 10px'
-        }
+          'margin': '0 10px 0 10px',
+        },
       }, {
         title: 'Image Right',
         selector: 'img',
         styles: {
           'float': 'right',
-          'margin': '0 0 10px 10px'
-        }
-      }
+          'margin': '0 0 10px 10px',
+        },
+      },
     ],
   };
 }

@@ -14,10 +14,10 @@ use function array_map;
 use Defuse\Crypto\Crypto;
 use Defuse\Crypto\Key;
 use Elabftw\Elabftw\Db;
-use Elabftw\Elabftw\Sql;
 use Elabftw\Elabftw\Update;
 use Elabftw\Exceptions\DatabaseErrorException;
 use PDO;
+use const SECRET_KEY;
 
 /**
  * The general config table
@@ -89,7 +89,7 @@ final class Config
         $this->Db->execute($req);
         $config = $req->fetchAll(PDO::FETCH_COLUMN | PDO::FETCH_GROUP);
         if ($config === false) {
-            throw new DatabaseErrorException('Error while executing SQL query.');
+            throw new DatabaseErrorException();
         }
         return array_map(function ($v) {
             return $v[0];
@@ -110,7 +110,7 @@ final class Config
 
         foreach ($passwords as $password) {
             if (isset($post[$password]) && !empty($post[$password])) {
-                $post[$password] = Crypto::encrypt($post[$password], Key::loadFromAsciiSafeString(\SECRET_KEY));
+                $post[$password] = Crypto::encrypt($post[$password], Key::loadFromAsciiSafeString(SECRET_KEY));
             // if it's not changed, it is sent anyway, but we don't want it in the final array as it will blank the existing one
             } elseif (isset($post[$password])) {
                 unset($post[$password]);
@@ -155,13 +155,11 @@ final class Config
      */
     private function populate(): bool
     {
-        $Update = new Update($this, new Sql());
-        $schema = $Update->getRequiredSchema();
+        $schema = Update::getRequiredSchema();
 
         $sql = "INSERT INTO `config` (`conf_name`, `conf_value`) VALUES
             ('admin_validate', '1'),
             ('autologout_time', '0'),
-            ('ban_time', '60'),
             ('debug', '0'),
             ('lang', 'en_GB'),
             ('login_tries', '3'),
@@ -190,13 +188,9 @@ final class Config
             ('saml_nameidformat', NULL),
             ('saml_x509', NULL),
             ('saml_privatekey', NULL),
-            ('saml_team', NULL),
             ('saml_team_create', '1'),
             ('saml_team_default', NULL),
             ('saml_user_default', '1'),
-            ('saml_email', NULL),
-            ('saml_firstname', NULL),
-            ('saml_lastname', NULL),
             ('local_login', '1'),
             ('local_register', '1'),
             ('admins_create_users', '1'),

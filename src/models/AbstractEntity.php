@@ -10,6 +10,7 @@ declare(strict_types=1);
 
 namespace Elabftw\Models;
 
+use function array_column;
 use Elabftw\Elabftw\ContentParams;
 use Elabftw\Elabftw\Db;
 use Elabftw\Elabftw\DisplayParams;
@@ -172,7 +173,7 @@ abstract class AbstractEntity implements CrudInterface
     public function readShow(DisplayParams $displayParams, bool $extended = false): array
     {
         $sql = $this->getReadSqlBeforeWhere($extended, $extended);
-        $teamgroupsOfUser = $this->TeamGroups->getGroupsFromUser();
+        $teamgroupsOfUser = array_column($this->TeamGroups->readGroupsFromUser(), 'id');
 
         // there might or might not be a condition for the WHERE, so make sure there is at least one
         $sql .= ' WHERE 1=1';
@@ -233,12 +234,7 @@ abstract class AbstractEntity implements CrudInterface
         $req->bindParam(':userid', $this->Users->userData['userid'], PDO::PARAM_INT);
         $this->Db->execute($req);
 
-        $itemsArr = $req->fetchAll();
-        if ($itemsArr === false) {
-            $itemsArr = array();
-        }
-
-        return $itemsArr;
+        return $this->Db->fetchAll($req);
     }
 
     public function read(ContentParamsInterface $params): array
@@ -313,10 +309,7 @@ abstract class AbstractEntity implements CrudInterface
         $req = $this->Db->prepare($sql);
         $req->bindParam(':type', $this->type);
         $this->Db->execute($req);
-        $res = $req->fetchAll();
-        if ($res === false) {
-            return array();
-        }
+        $res = $this->Db->fetchAll($req);
         $allTags = array();
         foreach ($res as $tags) {
             $allTags[$tags['item_id']][] = $tags;
@@ -327,7 +320,6 @@ abstract class AbstractEntity implements CrudInterface
     /**
      * Update an entity. The revision is saved before so it can easily compare old and new body.
      */
-    //public function update(string $title, string $date, string $body): void
     public function update(EntityParamsInterface | ItemTypeParamsInterface $params): bool
     {
         $this->canOrExplode('write');
@@ -341,6 +333,9 @@ abstract class AbstractEntity implements CrudInterface
                 break;
             case 'body':
                 $content = $params->getBody();
+                break;
+            case 'bodyappend':
+                $content = $this->entityData['body'] . $params->getBody();
                 break;
             case 'rating':
                 $content = $params->getRating();
@@ -359,7 +354,7 @@ abstract class AbstractEntity implements CrudInterface
         }
 
         // save a revision for body target
-        if ($params->getTarget() === 'body') {
+        if ($params->getTarget() === 'body' || $params->getTarget() === 'bodyappend') {
             $Config = Config::getConfig();
             $Revisions = new Revisions(
                 $this,
@@ -370,7 +365,13 @@ abstract class AbstractEntity implements CrudInterface
             $Revisions->create((string) $content);
         }
 
-        $sql = 'UPDATE ' . $this->type . ' SET ' . $params->getTarget() . ' = :content WHERE id = :id';
+        $column = $params->getTarget();
+        // special case for bodyappend that is a column + mode
+        if ($column === 'bodyappend') {
+            $column = 'body';
+        }
+
+        $sql = 'UPDATE ' . $this->type . ' SET ' . $column . ' = :content WHERE id = :id';
         $req = $this->Db->prepare($sql);
         $req->bindValue(':content', $content);
         $req->bindParam(':id', $this->id, PDO::PARAM_INT);
@@ -469,6 +470,9 @@ abstract class AbstractEntity implements CrudInterface
         if ($this instanceof Experiments || $this instanceof Items || $this instanceof Templates) {
             return $Permissions->forEntity();
         }
+        if ($this instanceof ItemsTypes) {
+            return $Permissions->forItemType();
+        }
 
         return array('read' => false, 'write' => false);
     }
@@ -536,15 +540,7 @@ abstract class AbstractEntity implements CrudInterface
         $req->bindParam(':to', $to);
         $this->Db->execute($req);
 
-        $idArr = array();
-        $res = $req->fetchAll();
-        if ($res === false) {
-            return array();
-        }
-        foreach ($res as $item) {
-            $idArr[] = $item['id'];
-        }
-        return $idArr;
+        return array_column($this->Db->fetchAll($req), 'id');
     }
 
     /**
@@ -568,7 +564,7 @@ abstract class AbstractEntity implements CrudInterface
         if ($this instanceof Items || $this->entityData['timestamped'] === '0') {
             return array();
         }
-        $timestamper = $this->Users->read((int) $this->entityData['timestampedby']);
+        $timestamper = new Users((int) $this->entityData['timestampedby']);
 
         $Uploads = new Uploads(new Experiments($this->Users, (int) $this->entityData['id']));
         $Uploads->Entity->type = 'exp-pdf-timestamp';
@@ -581,7 +577,7 @@ abstract class AbstractEntity implements CrudInterface
         $bloxbergProof = $Uploads->readAll();
 
         return array(
-            'timestamper' => $timestamper,
+            'timestamper' => $timestamper->userData,
             'pdf' => $pdf,
             'token' => $token,
             'bloxbergProof' => $bloxbergProof,

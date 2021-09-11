@@ -7,13 +7,12 @@
  */
 declare let key: any;
 declare let MathJax: any;
-import { getCheckedBoxes, insertParamAndReload, notif, reloadTagsAndLocks } from './misc';
-import { EntityType } from './interfaces';
+import { getCheckedBoxes, insertParamAndReload, notif, reloadEntitiesShow, getEntity } from './misc';
 import 'bootstrap/js/src/modal.js';
 import i18next from 'i18next';
 import EntityClass from './Entity.class';
 
-$(document).ready(function(){
+document.addEventListener('DOMContentLoaded', () => {
   if (!document.getElementById('info')) {
     return;
   }
@@ -24,18 +23,30 @@ $(document).ready(function(){
     return;
   }
 
-  let entityType = EntityType.Experiment;
-  if ($('#type').data('type') === 'items') {
-    entityType = EntityType.Item;
-  }
+  const entity = getEntity();
+  // PAGINATION
+  const offset = parseInt(about.offset);
+  const limit = parseInt(about.limit);
 
-  const EntityC = new EntityClass(entityType);
+  const EntityC = new EntityClass(entity.type);
 
-  // CREATE EXPERIMENT with shortcut
-  key($('#shortcuts').data('create'), function() {
-    EntityC.create('0').then(json => {
-      window.location.href = `experiments.php?mode=edit&id=${json.res}`;
-    });
+  // CREATE EXPERIMENT or DATABASE item with shortcut
+  key(document.getElementById('shortcuts').dataset.create, function() {
+    if (about.type === 'experiments') {
+      const el = document.querySelector('[data-action="create-entity"]') as HTMLButtonElement;
+      const tplid = el.dataset.tplid;
+      EntityC.create(tplid).then(json => {
+        if (json.res) {
+          window.location.replace(`?mode=edit&id=${json.value}`);
+        } else {
+          notif(json);
+        }
+      });
+    } else {
+      // for database items, show a selection modal
+      // modal plugin requires jquery
+      ($('#createModal') as any).modal('toggle');
+    }
   });
 
   // validate the form upon change. fix #451
@@ -127,7 +138,7 @@ $(document).ready(function(){
 
   // INVERT SELECTION
   $('#invertSelection').on('click', function() {
-    ($('.item input[type=checkbox]') as JQuery<HTMLInputElement>).each(function () {
+    ($('.item input[type=checkbox]') as JQuery<HTMLInputElement>).each(function() {
       this.checked = !this.checked;
       if ($(this).prop('checked')) {
         $(this).parent().parent().css('background-color', bgColor);
@@ -161,13 +172,13 @@ $(document).ready(function(){
         updateCategory : true,
         id: checked[index]['id'],
         categoryId : $('#catChecked').val(),
-        type : $('#type').data('type')
+        type : about.type,
       }));
     });
     // reload the page once it's done
     // a simple reload would not work here
     // we need to use when/then
-    $.when.apply(null, ajaxs).then(function (){
+    $.when.apply(null, ajaxs).then(function(){
       window.location.reload();
     });
   });
@@ -188,13 +199,13 @@ $(document).ready(function(){
         rw: 'read',
         id: checked[index]['id'],
         value: $('#visChecked').val(),
-        type : $('#type').data('type')
+        type : about.type,
       }));
     });
     // reload the page once it's done
     // a simple reload would not work here
     // we need to use when/then
-    $.when.apply(null, ajaxs).then(function (){
+    $.when.apply(null, ajaxs).then(function(){
       window.location.reload();
     });
     notif({'msg': 'Saved', 'res': true});
@@ -208,7 +219,7 @@ $(document).ready(function(){
       notif(nothingSelectedError);
       return;
     }
-    window.location.href = `make.php?what=${what}&type=${$('#type').data('type')}&id=${checked.map(value => value.id).join('+')}`;
+    window.location.href = `make.php?what=${what}&type=${about.type}&id=${checked.map(value => value.id).join('+')}`;
   });
 
   // THE LOCK BUTTON FOR CHECKED BOXES
@@ -227,8 +238,7 @@ $(document).ready(function(){
     });
 
     Promise.all(results).then(() => {
-      reloadTagsAndLocks('itemList');
-      reloadTagsAndLocks('item-table');
+      reloadEntitiesShow();
     });
   });
 
@@ -303,21 +313,13 @@ $(document).ready(function(){
   });
 
   // Add click listener and do action based on which element is clicked
-  document.querySelector('.real-container').addEventListener('click', (event) => {
+  document.querySelector('.real-container').addEventListener('click', event => {
     const el = (event.target as HTMLElement);
-    // PAGINATION
     // previous page
     if (el.matches('[data-action="previous-page"]')) {
-      const info = (document.querySelector('#info') as HTMLElement);
-      const offset = parseInt(info.dataset.offset);
-      const limit = parseInt(info.dataset.limit);
       insertParamAndReload('offset', offset - limit);
-
     // next page
     } else if (el.matches('[data-action="next-page"]')) {
-      const info = (document.querySelector('#info') as HTMLElement);
-      const offset = parseInt(info.dataset.offset);
-      const limit = parseInt(info.dataset.limit);
       insertParamAndReload('offset', offset + limit);
     // END PAGINATION
     }

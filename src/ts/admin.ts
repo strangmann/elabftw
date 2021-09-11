@@ -17,12 +17,16 @@ import { Ajax } from './Ajax.class';
 import { Payload, Method, Model, Action, Target } from './interfaces';
 import tinymce from 'tinymce/tinymce';
 import { getTinymceBaseConfig } from './tinymce';
+import Tab from './Tab.class';
 
-$(document).ready(function() {
+document.addEventListener('DOMContentLoaded', () => {
   if (window.location.pathname !== '/admin.php') {
     return;
   }
   const AjaxC = new Ajax();
+
+  const TabMenu = new Tab();
+  TabMenu.init(document.querySelector('.tabbed-menu'));
 
   // activate editor for common template
   tinymce.init(getTinymceBaseConfig('admin'));
@@ -32,7 +36,7 @@ $(document).ready(function() {
     $(this).attr('disabled', 'disabled').text('Please wait…');
     $.post('app/controllers/UsersAjaxController.php', {
       usersValidate: true,
-      userid: $(this).data('userid')
+      userid: $(this).data('userid'),
     }).done(function(json) {
       notif(json);
       if (json.res) {
@@ -64,7 +68,7 @@ $(document).ready(function() {
             cache[term] = json.value;
             response(json.value);
           });
-        }
+        },
       });
     }
   });
@@ -123,14 +127,14 @@ $(document).ready(function() {
       };
 
       AjaxC.send(payload);
-      return(value);
+      return (value);
     }, {
       indicator : 'Saving...',
       submit : 'Save',
       cancel : 'Cancel',
       cancelcssclass : 'button btn btn-danger',
       submitcssclass : 'button btn btn-primary',
-      style : 'display:inline'
+      style : 'display:inline',
     });
   });
 

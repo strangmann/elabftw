@@ -41,7 +41,7 @@ try {
         throw new IllegalActionException('Non admin user tried to access admin controller.');
     }
 
-    $ItemsTypes = new ItemsTypes($App->Users->team);
+    $ItemsTypes = new ItemsTypes($App->Users);
     $Status = new Status($App->Users->team);
     $Tags = new Tags(new Experiments($App->Users));
     $TeamGroups = new TeamGroups($App->Users);
@@ -49,6 +49,7 @@ try {
 
     $itemsTypesArr = $ItemsTypes->readAll();
     $statusArr = $Status->read(new ContentParams());
+    $teamConfigArr = $Teams->read(new ContentParams());
     $teamGroupsArr = $TeamGroups->read(new ContentParams());
     $teamsArr = $Teams->readAll();
     $allTeamUsersArr = $App->Users->readAllFromTeam();
@@ -80,6 +81,7 @@ try {
         'isSearching' => $isSearching,
         'itemsTypesArr' => $itemsTypesArr,
         'statusArr' => $statusArr,
+        'teamConfigArr' => $teamConfigArr,
         'teamGroupsArr' => $teamGroupsArr,
         'visibilityArr' => $TeamGroups->getVisibilityList(),
         'teamsArr' => $teamsArr,

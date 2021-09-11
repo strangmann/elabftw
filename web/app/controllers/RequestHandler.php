@@ -15,7 +15,6 @@ use Elabftw\Exceptions\DatabaseErrorException;
 use Elabftw\Exceptions\FilesystemErrorException;
 use Elabftw\Exceptions\IllegalActionException;
 use Elabftw\Exceptions\ImproperActionException;
-use Elabftw\Exceptions\InvalidCsrfTokenException;
 use Elabftw\Exceptions\ResourceNotFoundException;
 use Elabftw\Exceptions\UnauthorizedException;
 use Elabftw\Models\AbstractEntity;
@@ -24,7 +23,7 @@ use Elabftw\Models\Experiments;
 use Elabftw\Models\ItemsTypes;
 use Elabftw\Models\Status;
 use Elabftw\Models\Tags;
-use Elabftw\Models\Users;
+use Elabftw\Models\Teams;
 use Exception;
 use PDOException;
 use Swift_TransportException;
@@ -41,9 +40,6 @@ $Response->setData(array(
 $res = '';
 
 try {
-    // CSRF
-    $App->Csrf->validate();
-
     if ($Request->headers->get('Content-Type') === 'application/json') {
         $Processor = new JsonProcessor($App->Users, $Request);
     } elseif ($Request->getMethod() === 'GET') {
@@ -72,14 +68,7 @@ try {
             $res = $Params->getKey();
         }
     } elseif ($action === 'read') {
-        // TODO because Users is not crud
-        // TODO have a listable interface
-        // TODO just use read but target list instead of public getList
-        if ($target === 'list' && ($Model instanceof Users)) {
-            $res = $Model->getList($Params);
-        } else {
-            $res = $Model->read($Params);
-        }
+        $res = $Model->read($Params);
     } elseif ($action === 'update') {
         // TODO should not exist, but it's here for now
         if ($Model instanceof ItemsTypes && ($target !== 'metadata')) {
@@ -89,7 +78,9 @@ try {
         }
     } elseif ($action === 'destroy') {
         if ($Model instanceof Experiments) {
-            if ((!$App->teamConfigArr['deletable_xp'] && !$App->Session->get('is_admin'))
+            $Teams = new Teams($App->Users);
+            $teamConfigArr = $Teams->read(new ContentParams());
+            if ((!$teamConfigArr['deletable_xp'] && !$App->Session->get('is_admin'))
                 || $App->Config->configArr['deletable_xp'] === '0') {
                 throw new ImproperActionException('You cannot delete experiments!');
             }
@@ -103,7 +94,7 @@ try {
         $res = $Model->toggleLock();
     }
 
-    if ($Processor instanceof FormProcessor) {
+    if ($Processor instanceof FormProcessor && !($Request->request->get('extraParam') === 'jsoneditor')) {
         $Response = new RedirectResponse('../../' . $Processor->Entity->page . '.php?mode=edit&id=' . $Processor->Entity->id);
         $Response->send();
         exit;
@@ -122,7 +113,7 @@ try {
         'res' => false,
         'msg' => _('Error sending email'),
     ));
-} catch (ImproperActionException | InvalidCsrfTokenException | UnauthorizedException | ResourceNotFoundException | PDOException $e) {
+} catch (ImproperActionException | UnauthorizedException | ResourceNotFoundException | PDOException $e) {
     $Response->setData(array(
         'res' => false,
         'msg' => $e->getMessage(),

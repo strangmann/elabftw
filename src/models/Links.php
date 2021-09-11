@@ -79,11 +79,7 @@ class Links implements CrudInterface
         $req->bindParam(':id', $this->Entity->id, PDO::PARAM_INT);
         $this->Db->execute($req);
 
-        $res = $req->fetchAll();
-        if ($res === false) {
-            return array();
-        }
-        return $res;
+        return $this->Db->fetchAll($req);
     }
 
     /**
@@ -124,7 +120,7 @@ class Links implements CrudInterface
 
             // add all the teamgroups in which the user is
             $TeamGroups = new TeamGroups($this->Entity->Users);
-            $teamgroupsOfUser = $TeamGroups->getGroupsFromUser();
+            $teamgroupsOfUser = array_column($TeamGroups->readGroupsFromUser(), 'id');
             foreach ($teamgroupsOfUser as $teamgroup) {
                 $sql .= ' OR (entity.canread = ' . $teamgroup . ')';
             }

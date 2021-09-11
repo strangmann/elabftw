@@ -10,6 +10,7 @@ declare(strict_types=1);
 
 namespace Elabftw\Services;
 
+use function count;
 use Elabftw\Elabftw\ContentParams;
 use Elabftw\Exceptions\ImproperActionException;
 use Elabftw\Models\AbstractEntity;
@@ -70,7 +71,7 @@ class MakeStreamZip extends AbstractMake
      */
     public function getFileName(): string
     {
-        if (\count($this->idArr) === 1) {
+        if (count($this->idArr) === 1) {
             $this->Entity->setId((int) $this->idArr[0]);
             $this->Entity->canOrExplode('read');
             return $this->getBaseFileName() . '.zip';
@@ -109,10 +110,7 @@ class MakeStreamZip extends AbstractMake
             $req = $this->Db->prepare($sql);
             $req->bindParam(':id', $id, PDO::PARAM_INT);
             $req->execute();
-            $uploads = $req->fetchAll();
-            if ($uploads === false) {
-                $uploads = array();
-            }
+            $uploads = $this->Db->fetchAll($req);
             foreach ($uploads as $upload) {
                 // add it to the .zip
                 $this->Zip->addFileFromPath(

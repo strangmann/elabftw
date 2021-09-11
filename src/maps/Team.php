@@ -18,6 +18,7 @@ use Elabftw\Interfaces\MapInterface;
 use Elabftw\Services\Check;
 use Elabftw\Services\Filter;
 use PDO;
+use const SECRET_KEY;
 
 /**
  * One team
@@ -35,6 +36,8 @@ class Team implements MapInterface
     private int $deletableItem = 1;
 
     private int $userCreateTag = 1;
+
+    private int $forceExpTpl = 0;
 
     private int $publicDb = 0;
 
@@ -129,6 +132,16 @@ class Team implements MapInterface
         return $this->userCreateTag;
     }
 
+    final public function setForceExpTpl(string $setting): void
+    {
+        $this->forceExpTpl = Filter::toBinary($setting);
+    }
+
+    final public function getForceExpTpl(): int
+    {
+        return $this->forceExpTpl;
+    }
+
     final public function setPublicDb(string $setting): void
     {
         $this->publicDb = Filter::toBinary($setting);
@@ -206,7 +219,7 @@ class Team implements MapInterface
 
     final public function setStamppass(string $setting): void
     {
-        $this->stamppass = Crypto::encrypt($setting, Key::loadFromAsciiSafeString(\SECRET_KEY));
+        $this->stamppass = Crypto::encrypt($setting, Key::loadFromAsciiSafeString(SECRET_KEY));
     }
 
     final public function setStampcert(?string $setting): void
@@ -247,6 +260,7 @@ class Team implements MapInterface
             deletable_xp = :deletable_xp,
             deletable_item = :deletable_item,
             user_create_tag = :user_create_tag,
+            force_exp_tpl = :force_exp_tpl,
             public_db = :public_db,
             link_name = :link_name,
             link_href = :link_href,
@@ -267,6 +281,7 @@ class Team implements MapInterface
         $req->bindParam(':deletable_xp', $this->deletableXp, PDO::PARAM_INT);
         $req->bindParam(':deletable_item', $this->deletableItem, PDO::PARAM_INT);
         $req->bindParam(':user_create_tag', $this->userCreateTag, PDO::PARAM_INT);
+        $req->bindParam(':force_exp_tpl', $this->forceExpTpl, PDO::PARAM_INT);
         $req->bindParam(':public_db', $this->publicDb, PDO::PARAM_INT);
         $req->bindParam(':link_name', $this->linkName);
         $req->bindParam(':link_href', $this->linkHref);
@@ -298,6 +313,7 @@ class Team implements MapInterface
         $this->setDeletableXp($source['deletable_xp'] ?? (string) $this->deletableXp);
         $this->setDeletableItem($source['deletable_item'] ?? (string) $this->deletableItem);
         $this->setUserCreateTag($source['user_create_tag'] ?? (string) $this->userCreateTag);
+        $this->setForceExpTpl($source['force_exp_tpl'] ?? (string) $this->forceExpTpl);
         $this->setLinkName($source['link_name'] ?? $this->linkName);
         $this->setLinkHref($source['link_href'] ?? $this->linkHref);
         $this->setStamplogin($source['stamplogin'] ?? $this->stamplogin);

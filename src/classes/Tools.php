@@ -13,13 +13,13 @@ namespace Elabftw\Elabftw;
 use Elabftw\Models\Config;
 use function explode;
 use function filter_var;
-use function in_array;
 use InvalidArgumentException;
 use function json_decode;
 use League\CommonMark\Exception\UnexpectedEncodingException;
 use League\CommonMark\GithubFlavoredMarkdownConverter;
 use function mb_strlen;
 use function pathinfo;
+use function str_replace;
 use Symfony\Component\HttpFoundation\Request;
 use function trim;
 
@@ -68,9 +68,6 @@ class Tools
 
     /**
      * Convert markdown to html
-     *
-     * @param string $md Markdown code
-     * @return string HTML code
      */
     public static function md2html(string $md): string
     {
@@ -81,7 +78,7 @@ class Tools
 
         try {
             $converter = new GithubFlavoredMarkdownConverter($config);
-            return trim($converter->convertToHtml($md), "\n");
+            return trim($converter->convertToHtml($md)->getContent(), "\n");
         } catch (UnexpectedEncodingException) {
             // fix for incorrect utf8 encoding, just return md and hope it's html
             // so at least the thing is displayed instead of triggering a fatal error
@@ -308,7 +305,7 @@ class Tools
         if (!$canonical) {
             $url .= $Request->getBasePath();
         }
-        return \str_replace('app/controllers', '', $url);
+        return str_replace('app/controllers', '', $url);
     }
 
     /**
@@ -357,30 +354,6 @@ class Tools
             $final .= '<h4>' . $key . '</h4><p>' . $value['value'] . '</p>';
         }
         return $final;
-    }
-
-    /**
-     * Get an array of integer with valid number of items per page based on the current limit
-     *
-     * @param int $input the current limit for the page
-     */
-    public static function getLimitOptions(int $input): array
-    {
-        $limits = array(10, 20, 50, 100);
-        // if the current limit is already a standard one, no need to include it
-        if (in_array($input, $limits, true)) {
-            return $limits;
-        }
-        // now find the place where to include our limit
-        $place = count($limits);
-        foreach ($limits as $key => $limit) {
-            if ($input < $limit) {
-                $place = $key;
-                break;
-            }
-        }
-        array_splice($limits, $place, 0, array($input));
-        return $limits;
     }
 
     /**

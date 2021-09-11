@@ -39,6 +39,7 @@ $text-muted: $lightgray;
 @import 'footer';
 @import 'header';
 @import 'jquery-rating';
+@import 'jsoneditor';
 @import 'ove';
 @import 'tagcloud';
 @import 'todolist';
@@ -236,24 +237,24 @@ label {
 }
 
 /*  MENU is below main nav */
-#menu {
+.tabbed-menu {
     border-bottom: 1px solid $bordersgray;
     line-height: 200%;
     margin: 30px 0 20px;
     padding: 0;
-}
 
-#menu li {
-    color: $maingray;
-    cursor: pointer;
-    display: inline;
-    margin-right: 2%;
-    text-transform: uppercase;
-}
+    li {
+        color: $maingray;
+        cursor: pointer;
+        display: inline;
+        margin-right: 2%;
+        text-transform: uppercase;
+    }
 
-#menu .selected {
-    border-bottom: 5px solid $elabblue;
-    padding-bottom: 0;
+    .selected {
+        border-bottom: 5px solid $elabblue;
+        padding-bottom: 0;
+    }
 }
 
 /* ALERT */
@@ -489,9 +490,9 @@ table th {
     text-transform: uppercase;
 }
 
-/* TABLE OF EXPERIMENTS */
+/* TABLE SHOW MODE */
 
-#item-table {
+.item-table {
     width: 100%;
 
     th {
@@ -600,51 +601,6 @@ tr:nth-child(odd) {
         top: 50%;
         transform: translate(-50%, -50%);
         z-index: 1342;
-    }
-}
-
-/* loading ring */
-.lds-ring {
-    display: block;
-    height: 80px;
-    margin-left: 50%;
-    margin-right: auto;
-    position: relative;
-    width: 80px;
-
-    div {
-        animation: lds-ring 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
-        border: 8px solid #fff;
-        border-color: #fff transparent transparent;
-        border-radius: 50%;
-        box-sizing: border-box;
-        display: block;
-        height: 64px;
-        margin: 8px;
-        position: absolute;
-        width: 64px;
-    }
-
-    div:nth-child(1) {
-        animation-delay: -0.45s;
-    }
-
-    div:nth-child(2) {
-        animation-delay: -0.3s;
-    }
-
-    div:nth-child(3) {
-        animation-delay: -0.15s;
-    }
-}
-
-@keyframes lds-ring {
-    0% {
-        transform: rotate(0deg);
-    }
-
-    100% {
-        transform: rotate(360deg);
     }
 }
 
@@ -930,7 +886,7 @@ the form-control fails to do that so we do the border ourselves */
     footer,
     #menu,
     #filesdiv,
-    #comment_container,
+    #commentsDiv,
     #withSelected,
     .item-info > .clickable,
     .real-container > span,
@@ -1077,6 +1033,11 @@ the form-control fails to do that so we do the border ourselves */
     margin: 10px 0;
 }
 
+#doodleStrokeWidthContainer {
+    align-items: center;
+    display: flex;
+}
+
 /* don't register clicks with the svg (fontawesome icons)
  * this way the click event is registered by the parent and all is well
  */
@@ -1200,16 +1161,6 @@ input[type='color'] {
     }
 }
 
-/* jsoneditor */
-div.jsoneditor,
-div.jsoneditor-menu {
-    border-color: $elabblue;
-}
-
-div.jsoneditor-menu {
-    background-color: $elabblue;
-}
-
 .action-topmenu {
     svg {
         margin: 0 7px;
@@ -1218,4 +1169,27 @@ div.jsoneditor-menu {
 
 .fa-2x {
     font-size: 1.3em;
+}
+
+/* loading spinner */
+.lds-dual-ring::after {
+    animation: lds-dual-ring 1.3s linear infinite;
+    border: 8px solid $elabblue;
+    border-color: $elabblue transparent $elabblue transparent;
+    border-radius: 50%;
+    content: ' ';
+    display: block;
+    height: 150px;
+    margin: 4px;
+    width: 150px;
+}
+
+@keyframes lds-dual-ring {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
 }

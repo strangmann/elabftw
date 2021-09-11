@@ -13,7 +13,6 @@ namespace Elabftw\Elabftw;
 use function dirname;
 use Elabftw\Exceptions\IllegalActionException;
 use Elabftw\Exceptions\ImproperActionException;
-use Elabftw\Exceptions\InvalidCsrfTokenException;
 use Elabftw\Exceptions\UnauthorizedException;
 use Elabftw\Models\Experiments;
 use Elabftw\Models\Items;
@@ -43,9 +42,6 @@ $Response->setData(array(
 ));
 
 try {
-    // CSRF
-    $App->Csrf->validate();
-
     // id of the item (experiment or database item)
     $id = null;
 
@@ -191,7 +187,7 @@ try {
         if ($Entity instanceof Experiments) {
             $Category = new Status($App->Users->team);
         } else {
-            $Category = new ItemsTypes($App->Users->team);
+            $Category = new ItemsTypes($App->Users);
         }
         $Response->setData(array(
             'res' => true,
@@ -199,7 +195,7 @@ try {
             'color' => $Category->readColor((int) $Request->request->get('categoryId')),
         ));
     }
-} catch (ImproperActionException | InvalidCsrfTokenException | UnauthorizedException | PDOException $e) {
+} catch (ImproperActionException | UnauthorizedException | PDOException $e) {
     $Response->setData(array(
         'res' => false,
         'msg' => $e->getMessage(),

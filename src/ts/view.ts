@@ -74,7 +74,7 @@ document.addEventListener('DOMContentLoaded', () => {
         action: Action.Read,
         entity: entity,
         model: entity.type,
-        target: Target.BoundEvent
+        target: Target.BoundEvent,
       };
       AjaxC.send(payload).then(json => {
         const bookingsDiv = document.getElementById('boundBookings');
@@ -116,7 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const overlay = document.createElement('div');
       const loading = document.createElement('p');
       const ring = document.createElement('div');
-      ring.classList.add('lds-ring');
+      ring.classList.add('lds-dual-ring');
       // see https://loading.io/css/
       const emptyDiv = document.createElement('div');
       ring.appendChild(emptyDiv);

@@ -15,7 +15,6 @@ use Elabftw\Exceptions\DatabaseErrorException;
 use Elabftw\Exceptions\FilesystemErrorException;
 use Elabftw\Exceptions\IllegalActionException;
 use Elabftw\Exceptions\ImproperActionException;
-use Elabftw\Exceptions\InvalidCsrfTokenException;
 use Elabftw\Exceptions\UnauthorizedException;
 use Elabftw\Models\Experiments;
 use Elabftw\Models\Items;
@@ -43,7 +42,7 @@ try {
             if (!$App->Session->get('is_admin')) {
                 throw new IllegalActionException('Non admin user tried to access admin controller.');
             }
-            $Entity = new ItemsTypes($App->Users->team);
+            $Entity = new ItemsTypes($App->Users);
             break;
         case 'status':
             if (!$App->Session->get('is_admin')) {
@@ -74,7 +73,7 @@ try {
     }
     $OrderingParams = new OrderingParams($Request->request->get('table'), $Request->request->get('ordering'));
     $Entity->updateOrdering($OrderingParams);
-} catch (ImproperActionException | InvalidCsrfTokenException | UnauthorizedException $e) {
+} catch (ImproperActionException | UnauthorizedException $e) {
     $Response->setData(array(
         'res' => false,
         'msg' => $e->getMessage(),

@@ -23,6 +23,7 @@ use PDO;
 class Todolist implements CrudInterface
 {
     use SetIdTrait;
+
     use SortableTrait;
 
     protected Db $Db;
@@ -54,11 +55,7 @@ class Todolist implements CrudInterface
         $req->bindParam(':userid', $this->userid, PDO::PARAM_INT);
         $this->Db->execute($req);
 
-        $res = $req->fetchAll();
-        if ($res === false) {
-            return array();
-        }
-        return $res;
+        return $this->Db->fetchAll($req);
     }
 
     public function update(ContentParamsInterface $params): bool
