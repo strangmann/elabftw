@@ -7,8 +7,9 @@
  */
 import { insertParamAndReload } from './misc';
 import tinymce from 'tinymce/tinymce';
-import { MathJax } from 'mathjax-full/es5/tex-svg-full';
 import marked from 'marked';
+import { MathJaxObject } from 'mathjax-full/js/components/startup';
+declare const MathJax: MathJaxObject;
 
 interface EditorInterface {
   type: string;
@@ -48,11 +49,11 @@ class MdEditor extends Editor implements EditorInterface {
   }
   init(): void {
     ($('.markdown-textarea') as any).markdown({
-      onPreview: function(ed) {
+      onPreview: ed => {
         // ask mathjax to reparse the page
         // if we call typeset directly it doesn't work
         // so add a timeout
-        setTimeout(function() {
+        setTimeout(() => {
           MathJax.typeset();
         }, 1);
         // parse with marked and return the html
