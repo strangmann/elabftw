@@ -513,6 +513,7 @@ table th {
 
     .title {
         font-size: 100%;
+        min-width: 400px;
     }
 
     .actions-item-table {
@@ -520,7 +521,7 @@ table th {
     }
 
     .item-next {
-        max-width: 20ch;
+        max-width: 14ch;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
