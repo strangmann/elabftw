@@ -9,10 +9,10 @@ import $ from 'jquery';
 import { Ajax } from './Ajax.class';
 import 'bootstrap-select';
 import 'bootstrap/js/src/modal.js';
-import { notif, makeSortableGreatAgain } from './misc';
+import { clearLocalStorage, notif, makeSortableGreatAgain, reloadElement } from './misc';
 import i18next from 'i18next';
 import EntityClass from './Entity.class';
-import { EntityType, Payload, Method, Model, Action } from './interfaces';
+import { EntityType, Payload, Target, Method, Model, Action } from './interfaces';
 import 'bootstrap-markdown-fa5/js/bootstrap-markdown';
 import 'bootstrap-markdown-fa5/locale/bootstrap-markdown.de.js';
 import 'bootstrap-markdown-fa5/locale/bootstrap-markdown.es.js';
@@ -40,6 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setInterval(() => {
       fetch('app/controllers/HeartBeat.php').then(response => {
         if (!response.ok) {
+          clearLocalStorage();
           alert('Your session expired!');
           window.location.replace('login.php');
         }
@@ -121,6 +122,58 @@ document.addEventListener('DOMContentLoaded', () => {
   observer.observe(document.querySelector('footer'));
   // END BACK TO TOP BUTTON
 
+  // Add a listener for all elements triggered by an event
+  // and POST an update request
+  // select will be on change, text inputs on blur
+  function listenTrigger(): void {
+    document.querySelectorAll('[data-trigger]').forEach((el: HTMLInputElement) => {
+      el.addEventListener(el.dataset.trigger, event => {
+        event.preventDefault();
+        const payload: Payload = {
+          method: Method.POST,
+          action: el.dataset.action as Action ?? Action.Update,
+          model: el.dataset.model as Model,
+          target: el.dataset.target as Target,
+          content: el.value,
+        };
+        (new Ajax()).send(payload)
+          .then(json => notif(json))
+          .then(() => {
+            if (el.dataset.reload) {
+              reloadElement(el.dataset.reload).then(() => {
+                // make sure we listen to the new element too
+                listenTrigger();
+              });
+            }
+          });
+      });
+    });
+  }
+  listenTrigger();
+
+  /**
+   * Timestamp provider select
+   */
+  if (document.getElementById('ts_authority')) {
+    const select = (document.getElementById('ts_authority') as HTMLSelectElement);
+    const noAccountTsa = ['dfn', 'digicert', 'sectigo', 'globalsign'];
+    select.addEventListener('change', () => {
+      if (noAccountTsa.includes(select.value)) {
+        // mask all
+        document.getElementById('ts_loginpass').toggleAttribute('hidden', true);
+        document.getElementById('ts_urldiv').toggleAttribute('hidden', true);
+      } else if (select.value === 'universign') {
+        // only make loginpass visible
+        document.getElementById('ts_loginpass').removeAttribute('hidden');
+        document.getElementById('ts_urldiv').toggleAttribute('hidden', true);
+      } else if (select.value === 'custom') {
+        // show all
+        document.getElementById('ts_loginpass').removeAttribute('hidden');
+        document.getElementById('ts_urldiv').removeAttribute('hidden');
+      }
+    });
+  }
+
 
   /**
    * MAIN click event listener bound to container
@@ -185,7 +238,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // LOGOUT
     } else if (el.matches('[data-action="logout"]')) {
-      localStorage.removeItem('isTodolistOpen');
+      clearLocalStorage();
       window.location.href = 'app/logout.php';
 
     // CREATE EXPERIMENT or DATABASE item: main create button in top right
@@ -193,7 +246,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const path = window.location.pathname;
       if (path.split('/').pop() === 'experiments.php') {
         const tplid = el.dataset.tplid;
-        (new EntityClass(EntityType.Experiment)).create(tplid).then(json => {
+        const urlParams = new URLSearchParams(document.location.search);
+        const tags = urlParams.getAll('tags[]');
+        (new EntityClass(EntityType.Experiment)).create(tplid, tags).then(json => {
           if (json.res) {
             window.location.replace(`?mode=edit&id=${json.value}`);
           } else {
@@ -207,7 +262,9 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     } else if (el.matches('[data-action="create-item"]')) {
       const tplid = el.dataset.tplid;
-      (new EntityClass(EntityType.Item)).create(tplid).then(json => window.location.replace(`?mode=edit&id=${json.value}`));
+      const urlParams = new URLSearchParams(document.location.search);
+      const tags = urlParams.getAll('tags[]');
+      (new EntityClass(EntityType.Item)).create(tplid, tags).then(json => window.location.replace(`?mode=edit&id=${json.value}`));
     }
   });
 });

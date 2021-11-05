@@ -260,6 +260,15 @@ CREATE TABLE `experiments_templates_revisions` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `favtags2users`
+--
+
+CREATE TABLE `favtags2users` (
+  `users_id` int UNSIGNED NOT NULL,
+  `tags_id` int UNSIGNED NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
 -- Table structure for table `groups`
 --
 
@@ -399,8 +408,8 @@ CREATE TABLE `items_types` (
   `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
   `team` int(10) UNSIGNED NOT NULL,
   `name` varchar(255) NOT NULL,
-  `color` varchar(6) DEFAULT '000000',
-  `template` text,
+  `color` varchar(6) DEFAULT '29aeb9',
+  `body` text NULL DEFAULT NULL,
   `ordering` int(10) UNSIGNED DEFAULT NULL,
   `bookable` tinyint(1) UNSIGNED DEFAULT '0',
   `canread` varchar(255) NOT NULL DEFAULT 'team',
@@ -416,6 +425,33 @@ CREATE TABLE `items_types` (
 --   `team`
 --       `teams` -> `id`
 --
+
+--
+-- Table structure for table `items_types_links`
+--
+
+CREATE TABLE `items_types_links` (
+  `id` int UNSIGNED NOT NULL AUTO_INCREMENT,
+  `item_id` int UNSIGNED NOT NULL,
+  `link_id` int UNSIGNED NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `items_types_steps`
+--
+
+CREATE TABLE `items_types_steps` (
+  `id` int UNSIGNED NOT NULL AUTO_INCREMENT,
+  `item_id` int UNSIGNED NOT NULL,
+  `body` text NOT NULL,
+  `ordering` int UNSIGNED DEFAULT NULL,
+  `finished` tinyint(1) NOT NULL DEFAULT '0',
+  `finished_time` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
 --
@@ -519,11 +555,13 @@ CREATE TABLE `teams` (
   `link_name` text NOT NULL,
   `link_href` text NOT NULL,
   `datetime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `stamplogin` text,
-  `stamppass` text,
-  `stampprovider` text,
-  `stampcert` text,
-  `stamphash` varchar(10) DEFAULT 'sha256',
+  `ts_authority` varchar(255) NOT NULL DEFAULT 'dfn',
+  `ts_login` varchar(255) NULL DEFAULT NULL,
+  `ts_password` varchar(255) NULL DEFAULT NULL,
+  `ts_url` varchar(255) NULL DEFAULT NULL,
+  `ts_cert` varchar(255) NULL DEFAULT NULL,
+  `ts_hash` varchar(10) NOT NULL DEFAULT 'sha256',
+  `ts_override` tinyint(1) UNSIGNED NOT NULL DEFAULT 0,
   `orgid` varchar(255) DEFAULT NULL,
   `public_db` tinyint(1) UNSIGNED NOT NULL DEFAULT 0,
   `force_canread` varchar(255) NOT NULL DEFAULT 'team',
@@ -762,6 +800,13 @@ ALTER TABLE `experiments_templates`
   ADD KEY `fk_experiments_templates_teams_id` (`team`);
 
 --
+-- Indexes for table `favtags2users`
+--
+ALTER TABLE `favtags2users`
+  ADD KEY `fk_favtags2users_tags_id` (`tags_id`),
+  ADD KEY `fk_favtags2users_users_id` (`users_id`);
+
+--
 -- Indexes for table `items`
 --
 ALTER TABLE `items`
@@ -780,6 +825,18 @@ ALTER TABLE `items_comments`
 ALTER TABLE `items_types`
   ADD KEY `fk_items_types_teams_id` (`team`);
 
+--
+-- Indexes for table `items_types_links`
+--
+ALTER TABLE `items_types_links`
+  ADD KEY `fk_items_types_links_items_id` (`item_id`),
+  ADD KEY `fk_items_types_links_items_id2` (`link_id`);
+
+--
+-- Indexes for table `items_types_steps`
+--
+ALTER TABLE `items_types_steps`
+  ADD KEY `fk_items_types_steps_items_id` (`item_id`);
 --
 -- Indexes for table `status`
 --
@@ -869,6 +926,13 @@ ALTER TABLE `experiments_templates_revisions`
   ADD CONSTRAINT `fk_experiments_templates_revisions_users_userid` FOREIGN KEY (`userid`) REFERENCES `users`(`userid`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
+-- Constraints for table `favtags2users`
+--
+ALTER TABLE `favtags2users`
+  ADD CONSTRAINT `fk_favtags2users_tags_id` FOREIGN KEY (`tags_id`) REFERENCES `tags` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_favtags2users_users_id` FOREIGN KEY (`users_id`) REFERENCES `users` (`userid`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
 -- Constraints for table `items`
 --
 ALTER TABLE `items`
@@ -893,6 +957,19 @@ ALTER TABLE `items_revisions`
 --
 ALTER TABLE `items_types`
   ADD CONSTRAINT `fk_items_types_teams_id` FOREIGN KEY (`team`) REFERENCES `teams`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `items_types_links`
+--
+ALTER TABLE `items_types_links`
+  ADD CONSTRAINT `fk_items_types_links_items_id` FOREIGN KEY (`link_id`) REFERENCES `items` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_items_types_links_items_types_id` FOREIGN KEY (`item_id`) REFERENCES `items_types` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `items_types_steps`
+--
+ALTER TABLE `items_types_steps`
+  ADD CONSTRAINT `fk_items_types_steps_items_id` FOREIGN KEY (`item_id`) REFERENCES `items_types` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `status`

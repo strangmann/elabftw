@@ -38,7 +38,7 @@ $Tags = new Tags($Experiments);
 $tagsArr = $Tags->readAll();
 
 $itemsTypesArr = (new ItemsTypes($App->Users))->read(new ContentParams('', 'all'));
-$categoryArr = $statusArr = (new Status($App->Users->team))->read(new ContentParams());
+$categoryArr = $statusArr = (new Status($App->Users->team))->readAll();
 if ($Request->query->get('type') !== 'experiments') {
     $categoryArr = $itemsTypesArr;
 }
@@ -216,6 +216,6 @@ if ($Request->query->count() > 0) {
     }
 } else {
     // no search
-    echo $App->render('todolist.html', array());
+    echo $App->render('todolist-panel.html', array());
     echo $App->render('footer.html', array());
 }

@@ -22,6 +22,7 @@ use Elabftw\Models\Experiments;
 use Elabftw\Models\Users;
 use Elabftw\Traits\PdfTrait;
 use Elabftw\Traits\TwigTrait;
+use Elabftw\Traits\UploadTrait;
 use function is_dir;
 use function mkdir;
 use Mpdf\Mpdf;
@@ -37,8 +38,8 @@ use Symfony\Component\HttpFoundation\Request;
 class MakePdf extends AbstractMake implements FileMakerInterface
 {
     use TwigTrait;
-
     use PdfTrait;
+    use UploadTrait;
 
     public string $longName;
 
@@ -253,7 +254,7 @@ class MakePdf extends AbstractMake implements FileMakerInterface
 
     private function getBody(): string
     {
-        $body = Tools::md2html($this->Entity->entityData['body']);
+        $body = Tools::md2html($this->Entity->entityData['body'] ?? '');
         // we need to fix the file path in the body so it shows properly into the pdf for timestamping (issue #131)
         return str_replace('src="app/download.php?f=', 'src="' . dirname(__DIR__, 2) . '/uploads/', $body);
     }

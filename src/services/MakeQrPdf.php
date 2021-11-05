@@ -25,20 +25,12 @@ use Symfony\Component\HttpFoundation\Request;
 class MakeQrPdf extends AbstractMake implements FileMakerInterface
 {
     use TwigTrait;
-
     use PdfTrait;
 
-    // the input ids but in an array
-    private array $idArr = array();
-
-    /**
-     * The idList is a space separated string of ids
-     */
-    public function __construct(MpdfProviderInterface $mpdfProvider, AbstractEntity $entity, string $idList)
+    public function __construct(MpdfProviderInterface $mpdfProvider, AbstractEntity $entity, private array $idArr)
     {
         parent::__construct($entity);
 
-        $this->idArr = explode(' ', $idList);
         $this->mpdf = $mpdfProvider->getInstance();
     }
 

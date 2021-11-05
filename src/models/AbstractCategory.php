@@ -21,17 +21,11 @@ use Elabftw\Traits\SortableTrait;
 abstract class AbstractCategory implements CrudInterface
 {
     use SortableTrait;
-
     use EntityTrait;
 
     protected Db $Db;
 
     protected int $team;
-
-    /**
-     * Get the color of an item type
-     */
-    abstract public function readColor(int $id): string;
 
     /**
      * Get all the things

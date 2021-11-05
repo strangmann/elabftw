@@ -18,7 +18,6 @@ use Elabftw\Elabftw\Permissions;
 use Elabftw\Elabftw\Tools;
 use Elabftw\Exceptions\IllegalActionException;
 use Elabftw\Exceptions\ImproperActionException;
-use Elabftw\Exceptions\ResourceNotFoundException;
 use Elabftw\Interfaces\ContentParamsInterface;
 use Elabftw\Interfaces\CrudInterface;
 use Elabftw\Interfaces\EntityParamsInterface;
@@ -126,8 +125,8 @@ abstract class AbstractEntity implements CrudInterface
      */
     public function toggleLock(): bool
     {
-        $permissions = $this->getPermissions();
-        if (!$this->Users->userData['can_lock'] && !$permissions['write']) {
+        $this->getPermissions();
+        if (!$this->Users->userData['can_lock'] && $this->entityData['userid'] !== $this->Users->userData['userid']) {
             throw new ImproperActionException(_("You don't have the rights to lock/unlock this."));
         }
         $locked = (int) $this->entityData['locked'];
@@ -289,9 +288,6 @@ abstract class AbstractEntity implements CrudInterface
         $this->Db->execute($req);
 
         $item = $req->fetch();
-        if ($item === false) {
-            throw new ResourceNotFoundException();
-        }
 
         $permissions = $this->getPermissions($item);
         if ($permissions['read'] === false) {
@@ -372,7 +368,7 @@ abstract class AbstractEntity implements CrudInterface
                 $content = $params->getUserId();
                 break;
             default:
-                throw new ImproperActionException('Invalid update target');
+                throw new ImproperActionException('Invalid update target' . $params->getTarget());
         }
 
         // save a revision for body target
@@ -515,7 +511,7 @@ abstract class AbstractEntity implements CrudInterface
      *
      * @param int $category id of the category (status or items types)
      */
-    public function updateCategory(int $category): void
+    public function updateCategory(int $category): bool
     {
         $this->canOrExplode('write');
 
@@ -523,7 +519,7 @@ abstract class AbstractEntity implements CrudInterface
         $req = $this->Db->prepare($sql);
         $req->bindParam(':category', $category, PDO::PARAM_INT);
         $req->bindParam(':id', $this->id, PDO::PARAM_INT);
-        $this->Db->execute($req);
+        return $this->Db->execute($req);
     }
 
     /**
@@ -637,6 +633,17 @@ abstract class AbstractEntity implements CrudInterface
         return $this->type;
     }
 
+    public function getIdFromCategory(int $category): array
+    {
+        $sql = 'SELECT id FROM ' . $this->getTable() . ' WHERE team = :team AND category = :category';
+        $req = $this->Db->prepare($sql);
+        $req->bindParam(':team', $this->Users->team, PDO::PARAM_INT);
+        $req->bindParam(':category', $category);
+        $req->execute();
+        $res = $this->Db->fetchAll($req);
+        return array_column($res, 'id');
+    }
+
     /**
      * Update only one field in the metadata json
      */
@@ -678,8 +685,12 @@ abstract class AbstractEntity implements CrudInterface
                 entity.locked,
                 entity.canread,
                 entity.canwrite,
-                entity.metadata,
                 entity.lastchange,';
+            // don't include the metadata column unless we really need it
+            // see https://stackoverflow.com/questions/29575835/error-1038-out-of-sort-memory-consider-increasing-sort-buffer-size
+            if ($this->isMetadataSearch) {
+                $select .= 'entity.metadata,';
+            }
         }
         $select .= "uploads.up_item_id, uploads.has_attachment,
             SUBSTRING_INDEX(GROUP_CONCAT(stepst.next_step ORDER BY steps_ordering, steps_id SEPARATOR '|'), '|', 1) AS next_step,

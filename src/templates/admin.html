@@ -23,7 +23,9 @@
   <li data-action='switch-tab' data-tabtarget='4'>{% trans %}Status{% plural 2 %}Status{% endtrans %}</li>
   <li data-action='switch-tab' data-tabtarget='5'>{{ 'Types of items'|trans }}</li>
   <li data-action='switch-tab' data-tabtarget='6'>{{ 'Import'|trans }}</li>
-  <li data-action='switch-tab' data-tabtarget='7'>{{ 'Tag manager'|trans }}</li>
+  <li data-action='switch-tab' data-tabtarget='7'>{{ 'Export'|trans }}</li>
+  <li data-action='switch-tab' data-tabtarget='8'>{{ 'Tag manager'|trans }}</li>
+  <li data-action='switch-tab' data-tabtarget='9'>{{ 'Timestamp'|trans }}</li>
 </ul>
 
 <!-- loading spinner -->
@@ -110,33 +112,6 @@
       </select>
       <span class='smallgray'>{{ 'Enforce the write permission for all experiments of users in this team.'|trans }}</span>
 
-      <span data-action='toggle-next' class='m-0 button btn btn-neutral'>{{ 'Override general timestamping config'|trans }}</span>
-      <div hidden class='mt-2'>
-        <label for='stampprovider'>{{ 'URL for external timestamping service:'|trans }}</label>
-        <input class='form-control col-md-4' type='url' placeholder='http://zeitstempel.dfn.de/' value='{{ teamConfigArr.stampprovider }}' name='stampprovider' id='stampprovider' />
-        <span class='smallgray'>{{ 'This should be the URL used for %sRFC 3161%s-compliant timestamping requests.'|trans|format("<a href='https://tools.ietf.org/html/rfc3161'>", "</a>")|raw }}</span>
-
-        <!-- TODO provide an upload button -->
-        <label for='stampcert'>{{ 'Chain of certificates of the external timestamping service:'|trans }}</label>
-        <input class='form-control col-md-4' type='text' placeholder='app/dfn-cert/pki.dfn.pem' value='{{ teamConfigArr.stampcert }}' name='stampcert' id='stampcert' />
-        <span class='smallgray'>{{ "This should point to the chain of certificates used by your external timestamping provider to sign the timestamps.%sLocal path relative to eLabFTW installation directory. You should add it in the 'uploads' folder. The file needs to be in %sPEM-encoded (ASCII)%s format!"|trans|format("<br>", "<a href='https://en.wikipedia.org/wiki/Privacy-enhanced_Electronic_Mail'>", "</a>")|raw }}</span>
-        <label for='stamplogin'>{{ 'Login for external timestamping service:'|trans }}</label>
-        <input class='form-control col-md-4' autocomplete='off' type='text' value='{{ teamConfigArr.stamplogin }}' name='stamplogin' id='stamplogin' />
-        <span class='smallgray'>{{ 'This should be the login associated with your timestamping service provider'|trans }}</span>
-
-        <label for='stamppass'>{{ 'Password for external timestamping service:'|trans }}</label>
-        {% if teamConfigArr.stamppass|length > 1 %}
-        <p>{{ 'A password is already set.'|trans }}
-        {{ '%sClear it%s or change it below:'|trans|format("
-        <a href='app/controllers/AdminController.php?clearStamppass=1'>",
-        "</a>"
-        )|raw }}
-        </p>
-        {% endif %}
-        <input class='form-control col-md-4' autocomplete='off' type='password' name='stamppass' id='stamppass' />
-        <span class='smallgray'>{{ 'Your timestamping service provider password'|trans }}</span>
-      </div>
-
       <br>
       <label for="common_template">{{ 'Common Experiment Template'|trans }}</label>
       <textarea style='height:400px' class='mceditable' name="common_template" id='common_template'>
@@ -186,7 +161,7 @@
 
 <!-- TAB 3 USERS -->
 <div data-tabcontent='3' hidden>
-  {{ include('editusers.html') }}
+  {% include 'editusers.html' %}
 </div>
 
 <!-- TAB 4 STATUS -->
@@ -213,7 +188,7 @@
       </div>
 
       <div class='col-auto mt-4'>
-        <button class='button btn btn-primary' id='statusCreate'>{{ 'Save'|trans }}</button>
+        <button class='button btn btn-primary' data-action='create-status'>{{ 'Save'|trans }}</button>
       </div>
     </div>
   </div>
@@ -246,7 +221,7 @@
             </li>
 
             <li class='list-inline-item'>
-              <button data-statusid='{{ status.category_id }}' class='button btn btn-primary statusSave'>{{ 'Save'|trans }}</button>
+              <button data-statusid='{{ status.category_id }}' class='button btn btn-primary' data-action='update-status'>{{ 'Save'|trans }}</button>
             </li>
 
             <li class='list-inline-item'>
@@ -266,130 +241,101 @@
 
 <!-- TAB 5 ITEMS TYPES-->
 <div data-tabcontent='5' hidden>
-  <div class='box'>
-    <h3>{{ 'Add a new type of item'|trans }}</h3>
-    <hr>
-    <div class='form-row align-items-center mb-2'>
-      <div class='col-auto'>
-        <label for='itemsTypesName'>{{ 'Name'|trans }}</label>
-        <input class='form-control' type='text' id='itemsTypesName' />
-      </div>
-
-      <div class='col-1'>
-        <label for='itemsTypesColor'>{{ 'Color'|trans }}</label>
-        <input class='form-control randomColor' type='color' id='itemsTypesColor' />
-      </div>
-
-      <div class='col-auto'>
-        <div class='form-check mt-4'>
-          <input class='form-check-input' type='checkbox' id='itemsTypesBookable' />
-          <label class='form-check-label' for='itemsTypesBookable'>{{ 'Bookable'|trans }} {{ 'in the %sscheduler%s'|trans|format("<a href='team.php'>", "</a>")|raw }}</label>
-        </div>
-      </div>
-    </div>
-
-    <textarea class='mceditable' id='itemsTypesTemplate'></textarea>
-
+  <div class='box' style='min-height: 600px;'>
     <div class='row'>
-      <div class='col-md-3'>
-        <!-- CAN READ -->
-        <i class='fas fa-eye' title='Visibility'></i>
-        <label for='canread_select'>{{ 'Visibility'|trans }}</label>
-        <select id='canread_select' class='form-control'>
-          {% for key, value in visibilityArr %}
-            <option value='{{ key }}'
-            {{ key == 'team' ? ' selected' }}
-            >{{ value|trans }}</option>
+      <div class='col'>
+        <h3>{{ 'Database Items Types'|trans }}</h3>
+      </div>
+      <!-- CREATE NEW BUTTON -->
+      <div class='col text-right'>
+        <button type='button' class='btn btn-primary' data-action='itemstypes-create'>{{ 'Create'|trans }}</button>
+      </div>
+    </div>
+
+    <form class='row'>
+      <div class='col-md-10'>
+        <input type='hidden' name='tab' value='5' />
+        <select class='form-control selectpicker' name='templateid' required data-show-subtext='true' data-live-search='true'>
+          {% for template in itemsCategoryArr %}
+            <option value='{{ template.category_id }}'{{ App.Request.query.get('templateid') == template.category_id ? ' selected' }}>{{ template.category|raw }}</option>
           {% endfor %}
         </select>
       </div>
 
-      <div class='col-md-3'>
-        <!-- CAN WRITE -->
-        <i class='fas fa-pencil-alt' title='Can write'></i>
-        <label for='canwrite_select'>{{ 'Can write'|trans }}</label>
-        <select id='canwrite_select' class='form-control'>
-          {% for key, value in visibilityArr %}
-            <option value='{{ key }}'
-            {{ key == 'team' ? ' selected' }}
-            >{{ value|trans }}</option>
-          {% endfor %}
-        </select>
+      <div class='col-md-2'>
+        <button class='btn btn-primary'>{{ 'Go'|trans }}</button>
       </div>
-    </div>
 
-    <div class='mt-4 text-center'>
-      <button id='itemsTypesCreate' class='button btn btn-primary'>{{ 'Save'|trans }}</button>
-    </div>
+    </form>
+    <hr>
+
+    <!-- templateData will be loaded with content from an item type if templateid is present is url -->
+    {% if templateData %}
+      <ul class='list-inline'>
+        <li class='list-inline-item'>
+          <label for='itemsTypesName'>{{ 'Name'|trans }}</label>
+          <input type='text' class='form-control' id='itemsTypesName' value='{{ templateData.name|raw }}' />
+        </li>
+
+        <li class='list-inline-item col-1 align-top'>
+          <label for='itemsTypesColor'>{{ 'Color'|trans }}</label>
+          <input class='form-control' type='color' id='itemsTypesColor' value='#{{ templateData.color }}' />
+        </li>
+
+        <li class='list-inline-item'>
+          <input id='itemsTypesBookable' type='checkbox' {{ templateData.bookable ? " checked" }} />
+          <label for='itemsTypesBookable'>{{ 'Bookable'|trans }}</label>
+        </li>
+
+        <li class='list-inline-item'>
+          <label for='itemsTypesCanread'>{{ 'Visibility'|trans }}</label>
+          <select id='itemsTypesCanread' class='form-control'>
+            {% for key, value in visibilityArr %}
+              <option value='{{ key }}'
+              {{ key == templateData.canread ? ' selected' }}
+              >{{ value|trans }}</option>
+            {% endfor %}
+          </select>
+        </li>
+
+        <li class='list-inline-item'>
+          <label for='itemsTypesCanwrite'>{{ 'Can write'|trans }}</label>
+          <select id='itemsTypesCanwrite' class='form-control'>
+            {% for key, value in visibilityArr %}
+              <option value='{{ key }}'
+              {{ key == templateData.canwrite ? ' selected' }}
+              >{{ value|trans }}</option>
+            {% endfor %}
+          </select>
+        </li>
+      </ul>
+
+      <textarea class='mceditable' id='itemsTypesBody'>{{ templateData.body }}</textarea>
+
+      {% set mode = 'edit-template' %}
+      {% include 'steps-links-edit.html' %}
+      <!-- METADATA editor for items types -->
+      {% include 'json-editor.html' %}
+
+      <div class='text-center'>
+        <button class='button btn btn-primary' data-id='{{ templateData.id }}' data-action='itemstypes-update'>{{ 'Save'|trans }}</button>
+        <button class='button btn btn-danger' data-id='{{ templateData.id }}' data-action='itemstypes-destroy'>{{ 'Delete'|trans }}</button>
+      </div>
+    {% endif %}
+
   </div>
 
-
+  <!-- SORT ITEMS TYPES -->
   <div class='box'>
-    <h3>{{ 'Database Items Types'|trans }}</h3>
+    <h3>{{ 'Sort items types'|trans }}</h3>
     <hr>
     <ul class='list-group form-group sortable' data-axis='y' data-table='items_types'>
-      {% for itemType in itemsTypesArr %}
-        <li id='itemstypes_{{ itemType.category_id }}' class='list-group-item'>
-          <ul class='list-inline'>
-            <li class='list-inline-item'><span class='sortableHandle draggable float-right'><i class='fas fa-sort fa-2x'></i></span></li>
-            <li class='list-inline-item'>
-              <label for='itemsTypesName_{{ itemType.category_id }}'>{{ 'Name'|trans }}</label>
-              <input type='text' class='form-control' id='itemsTypesName_{{ itemType.category_id }}' value='{{ itemType.category|raw }}' />
-            </li>
-
-            <li class='list-inline-item col-1 align-top'>
-              <label for='itemsTypesColor_{{ itemType.category_id }}'>{{ 'Color'|trans }}</label>
-              <input class='form-control' type='color' id='itemsTypesColor_{{ itemType.category_id }}' value='#{{ itemType.color }}' />
-            </li>
-            <li class='list-inline-item'>
-              <input id='itemsTypesBookable_{{ itemType.category_id }}' type='checkbox' {{ itemType.bookable ? " checked" }} />
-              <label for='itemsTypesBookable_{{ itemType.category_id }}'>{{ 'Bookable'|trans }}</label>
-            </li>
-            <li class='list-inline-item'>
-              <button data-id='{{ itemType.category_id }}' class='button btn btn-neutral itemsTypesShowEditor'>{{ 'Edit the template'|trans }}</button>
-            </li>
-            <li class='list-inline-item'>
-              <button data-id='{{ itemType.category_id }}' data-type='items_types' data-action='json-load-metadata-from-id' class='button btn btn-neutral'>{{ 'Edit metadata'|trans }}</button>
-            </li>
-            <li class='list-inline-item'>
-              <label for='itemsTypesSelectCanread_{{ itemType.category_id }}'>{{ 'Visibility'|trans }}</label>
-              <select id='itemsTypesSelectCanread_{{ itemType.category_id }}' data-id='{{ itemType.category_id }}' class='itemsTypesSelectCanread form-control'>
-                {% for key, value in visibilityArr %}
-                  <option value='{{ key }}'
-                  {{ key == itemType.canread ? ' selected' }}
-                  >{{ value|trans }}</option>
-                {% endfor %}
-              </select>
-            </li>
-
-            <li class='list-inline-item itemsTypesCanwrite'>
-              <label for='itemsTypesSelectCanwrite_{{ itemType.category_id }}'>{{ 'Can write'|trans }}</label>
-              <select id='itemsTypesSelectCanwrite_{{ itemType.category_id }}' data-id='{{ itemType.category_id }}' class='itemsTypesSelectCanwrite form-control'>
-                {% for key, value in visibilityArr %}
-                  <option value='{{ key }}'
-                  {{ key == itemType.canwrite ? ' selected' }}
-                  >{{ value|trans }}</option>
-                {% endfor %}
-              </select>
-            </li>
-            <li class='list-inline-item'>
-              <button data-id='{{ itemType.category_id }}' class='button btn btn-primary itemsTypesUpdate'>{{ 'Save'|trans }}</button>
-            </li>
-            <li class='list-inline-item'>
-              <button data-id='{{ itemType.category_id }}' class='button btn btn-danger itemsTypesDestroy'>{{ 'Delete'|trans }}</button>
-            </li>
-            <li class='list-inline-item mt-2 itemsTypesEditor' id='itemsTypesEditor_{{ itemType.category_id }}'>
-              <textarea class='' id='itemsTypesTemplate_{{ itemType.category_id }}'>{{ itemType.template }}</textarea>
-            </li>
-          </ul>
-        </li>
+      {% for itemType in itemsCategoryArr %}
+      <li class='box' id='itemstypes_{{ itemType.category_id }}' style='color: #{{ itemType.color }}'><span class='sortableHandle draggable mr-2'><i class='fas fa-sort fa-2x'></i></span>{{ itemType.category | raw }}</li>
       {% endfor %}
     </ul>
   </div>
 
-  <!-- METADATA editor for items types -->
-  {% set mode = 'edit-template' %}
-  {{ include('json-editor.html') }}
 </div>
 
 <!-- TAB 6 IMPORT -->
@@ -405,7 +351,7 @@
       <label for='target_csv'>{{ '1. Select a type of item to import to:'|trans }}</label>
       <select class='form-control col-md-4' id='target_csv' autocomplete='off' name='target'>
         <option selected disabled>--------</option>
-        {% for itemsType in itemsTypesArr %}
+        {% for itemsType in itemsCategoryArr %}
         <option value='{{ itemsType.category_id }}'>{{ itemsType.category }}</option>
         {% endfor %}
       </select>
@@ -448,7 +394,7 @@
       <select class='form-control col-md-4' id='target_zip' autocomplete='off' name='target'>
         <option selected disabled>-------</option>
         <option disabled>{{ 'Import in database'|trans }}</option>
-        {% for itemsType in itemsTypesArr %}
+        {% for itemsType in itemsCategoryArr %}
           <option value='{{ itemsType.category_id }}'>{{ itemsType.category }}</option>
         {% endfor %}
         <option disabled>{{ 'Import in experiments'|trans }}</option>
@@ -479,10 +425,38 @@
   </div>
 </div>
 
-<!-- TAB 7 TAG MANAGER -->
+<!-- TAB 7 EXPORT -->
 <div data-tabcontent='7' hidden>
   <div class='box'>
+    <h3>{{ 'Export database items'|trans }}</h3>
+    <hr>
+    <label for='categoryExport'>{{ 'Select what to export:'|trans }}</label>
+    <select class='form-control col-md-4' id='categoryExport' autocomplete='off'>
+      {% for itemsType in itemsCategoryArr %}
+        <option value='{{ itemsType.category_id }}'>{{ itemsType.category }}</option>
+      {% endfor %}
+    </select>
+    <label for='categoryExportFormat'>{{ 'Select export format:'|trans }}</label>
+    <select class='form-control col-md-4' id='categoryExportFormat' autocomplete='off'>
+      <option value='zip'>{{ 'Make Zip'|trans }}</option>
+      <option value='csv'>{{ 'Make Csv'|trans }}</option>
+      <option value='multiPdf'>{{ 'Make PDF'|trans }}</option>
+      <option value='qrPdf'>{{ 'Make QR codes PDF'|trans }}</option>
+      <option value='json'>{{ 'Make JSON'|trans }}</option>
+    </select>
+
+
+    <div class='mt-2'>
+      <button data-action='export' class='button btn btn-primary'>{{ 'Export'|trans }}</button>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 8 TAG MANAGER -->
+<div data-tabcontent='8' hidden>
+  <div class='box'>
     <h3>{{ 'Manage tags of the team'|trans }}</h3>
+    <hr>
     <p>{{ 'From here you can edit or delete the tags for your team. Click the tag to edit it. Then click the deduplicate button to merge similar tags.'|trans }}</p>
     <button class='button btn btn-primary tagDeduplicate'><i class='fas fa-clone mr-1 text-white'></i>{{ 'Deduplicate'|trans }}</button>
     <hr>
@@ -494,6 +468,31 @@
   </div>
 </div>
 
-<div id='info' data-page='template-edit' data-type='items_types'></div>
+<!-- TAB 9 TIMESTAMP -->
+<div data-tabcontent='9' hidden>
+  <div class='box'>
+    <h3>{{ 'Configure timestamping'|trans }}</h3>
+    <hr>
+    {{ 'The general timestamping configuration is set to %s.'|trans|format(App.Config.configArr.ts_authority|capitalize) }}
+    {% if App.Config.configArr.ts_share %}
+      {{ 'You can use the general configuration or setup another below.'|trans }}
+    {% else %}
+      {{ 'Timestamping service credentials sharing is disabled. You need to enter your own credentials.'|trans }}
+    {% endif %}
+
+    <!-- allow the team admin to select another tsa -->
+    <div class='form-check mt-2'>
+      <input data-action='override-timestamp' {{ teamConfigArr.ts_override ? 'checked' : '' }} autocomplete='off' class='form-check-input' type='checkbox' id='overrideTimestamp' />
+      <label class='form-check-label' for='overrideTimestamp'>{{ 'Override general timestamping config'|trans }}</label>
+    </div>
+
+    <!-- this block is only showed if the override is set to true (1) -->
+    <div class='mt-2' {{ teamConfigArr.ts_override != '1' ? 'hidden' : '' }} id='overrideTimestampContent'>
+      {% include 'ts-config.html' %}
+    </div>
+  </div>
+</div>
+
+<div id='info' data-page='template-edit' data-type='items_types' data-id='{{ App.Request.query.get('templateid') }}'></div>
 
 {% endblock body %}
