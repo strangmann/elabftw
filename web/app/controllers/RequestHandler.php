@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 /**
  * @author Nicolas CARPi <nico-git@deltablot.email>
  * @copyright 2012 Nicolas CARPi
@@ -6,7 +6,6 @@
  * @license AGPL-3.0
  * @package elabftw
  */
-declare(strict_types=1);
 
 namespace Elabftw\Elabftw;
 
@@ -27,28 +26,25 @@ use Elabftw\Models\Tags;
 use Elabftw\Models\Teams;
 use Exception;
 use PDOException;
-use Swift_TransportException;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
+/**
+ * This is the main endpoint for requests. It can deal with json requests or classical forms.
+ */
 require_once dirname(__DIR__) . '/init.inc.php';
 
+// the default response is a failed json response
 $Response = new JsonResponse();
 $Response->setData(array(
     'res' => false,
     'msg' => Tools::error(),
 ));
+// this is the result of the processed action
 $res = '';
 
 try {
-    if ($Request->headers->get('Content-Type') === 'application/json') {
-        $Processor = new JsonProcessor($App->Users, $Request);
-    } elseif ($Request->getMethod() === 'GET') {
-        $Processor = new RequestProcessor($App->Users, $Request);
-    } else {
-        $Processor = new FormProcessor($App->Users, $Request);
-    }
-
+    $Processor = (new ProcessorFactory)->getProcessor($App->Users, $Request);
     $action = $Processor->getAction();
     $Model = $Processor->getModel();
     $Params = $Processor->getParams();
@@ -100,26 +96,23 @@ try {
         $res = $Model->deduplicate();
     } elseif ($action === 'lock' && $Model instanceof AbstractEntity) {
         $res = $Model->toggleLock();
+    } elseif ($action === 'pin' && $Model instanceof AbstractEntity) {
+        $res = $Model->Pins->togglePin();
     }
 
+    // special case for uploading an edited json file back: it's a POSTed async form
+    // for the rest of the cases, we redirect to the entity page edit mode because IIRC only the attached file update feature will use this
     if ($Processor instanceof FormProcessor && !($Request->request->get('extraParam') === 'jsoneditor')) {
         $Response = new RedirectResponse('../../' . $Processor->Entity->page . '.php?mode=edit&id=' . $Processor->Entity->id);
         $Response->send();
         exit;
     }
+
+    // the value param can hold a value used in the page
     $Response->setData(array(
         'res' => true,
         'msg' => _('Saved'),
         'value' => $res,
-    ));
-} catch (Swift_TransportException $e) {
-    // for swift error, don't display error to user as it might contain sensitive information
-    // but log it and display general error. See #841
-    $App->Log->error('', array('exception' => $e));
-    $Response = new JsonResponse();
-    $Response->setData(array(
-        'res' => false,
-        'msg' => _('Error sending email'),
     ));
 } catch (ImproperActionException | UnauthorizedException | ResourceNotFoundException | PDOException $e) {
     $Response->setData(array(

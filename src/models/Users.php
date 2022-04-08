@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 /**
  * @author Nicolas CARPi <nico-git@deltablot.email>
  * @copyright 2012 Nicolas CARPi
@@ -6,15 +6,14 @@
  * @license AGPL-3.0
  * @package elabftw
  */
-declare(strict_types=1);
 
 namespace Elabftw\Models;
 
+use Elabftw\Elabftw\CreateNotificationParams;
 use Elabftw\Elabftw\Db;
 use Elabftw\Exceptions\ImproperActionException;
 use Elabftw\Interfaces\ContentParamsInterface;
 use Elabftw\Services\Check;
-use Elabftw\Services\Email;
 use Elabftw\Services\EmailValidator;
 use Elabftw\Services\Filter;
 use Elabftw\Services\TeamsHelper;
@@ -79,6 +78,7 @@ class Users
         // make sure that all the teams in which the user will be are created/exist
         // this might throw an exception if the team doesn't exist and we can't create it on the fly
         $teams = $Teams->getTeamsFromIdOrNameOrOrgidArray($teams);
+        $TeamsHelper = new TeamsHelper((int) $teams[0]['id']);
 
         $EmailValidator = new EmailValidator($email, $Config->configArr['email_domain']);
         $EmailValidator->validate();
@@ -98,8 +98,6 @@ class Users
 
         // get the group for the new user
         if ($group === null) {
-            $teamId = (int) $teams[0]['id'];
-            $TeamsHelper = new TeamsHelper($teamId);
             $group = $TeamsHelper->getGroup();
         }
 
@@ -143,14 +141,12 @@ class Users
 
         // now add the user to the team
         $Teams->addUserToTeams($userid, array_column($teams, 'id'));
-        $userInfo = array('email' => $email, 'name' => $firstname . ' ' . $lastname);
-        $Email = new Email($Config, $this);
-        // just skip this if we don't have proper normalized teams
-        if ($alertAdmin && isset($teams[0]['id'])) {
-            $Email->alertAdmin((int) $teams[0]['id'], $userInfo, !(bool) $validated);
+        if ($alertAdmin) {
+            $this->notifyAdmins($TeamsHelper->getAllAdminsUserid(), $userid, $validated);
         }
         if ($validated === 0) {
-            $Email->alertUserNeedValidation($email);
+            $Notifications = new Notifications(new self($userid));
+            $Notifications->create(new CreateNotificationParams(Notifications::SELF_NEED_VALIDATION));
             // set a flag to show correct message to user
             $this->needValidation = true;
         }
@@ -171,37 +167,46 @@ class Users
     }
 
     /**
-     * Search users based on query. It searches in email, firstname, lastname or team name
+     * Search users based on query. It searches in email, firstname, lastname
      *
      * @param string $query the searched term
-     * @param bool $teamFilter toggle between sysadmin/admin view
+     * @param int $teamId limit search to a given team or search all teams if 0
      */
-    public function readFromQuery(string $query, bool $teamFilter = false): array
+    public function readFromQuery(string $query, int $teamId = 0): array
     {
         $teamFilterSql = '';
-        if ($teamFilter) {
-            $teamFilterSql = 'AND users2teams.teams_id = :team';
+        if ($teamId > 0) {
+            $teamFilterSql = ' AND users2teams.teams_id = :team';
         }
 
-        // NOTE: previously, the ORDER BY started with the team, but that didn't work
-        // with the DISTINCT, so it was removed.
-        $sql = "SELECT DISTINCT users.userid,
+        // Assures to get every user only once
+        $tmpTable = ' (SELECT users_id, MIN(teams_id) AS teams_id
+            FROM users2teams
+            GROUP BY users_id) AS';
+        // unless we use a specific team
+        if ($teamId > 0) {
+            $tmpTable = '';
+        }
+
+        // NOTE: $tmpTable avoids the use of DISTINCT, so we are able to use ORDER BY with teams_id.
+        // Side effect: User is shown in team with lowest id
+        $sql = "SELECT users.userid,
             users.firstname, users.lastname, users.email, users.mfa_secret,
             users.validated, users.usergroup, users.archived, users.last_login,
             CONCAT(users.firstname, ' ', users.lastname) AS fullname,
             users.cellphone, users.phone, users.website, users.skype
             FROM users
-            CROSS JOIN users2teams ON (users2teams.users_id = users.userid " . $teamFilterSql . ')
+            CROSS JOIN" . $tmpTable . ' users2teams ON (users2teams.users_id = users.userid' . $teamFilterSql . ')
             WHERE (users.email LIKE :query OR users.firstname LIKE :query OR users.lastname LIKE :query)
-            ORDER BY users.usergroup ASC, users.lastname ASC';
+            ORDER BY users2teams.teams_id ASC, users.usergroup ASC, users.lastname ASC';
         $req = $this->Db->prepare($sql);
         $req->bindValue(':query', '%' . $query . '%');
-        if ($teamFilter) {
-            $req->bindValue(':team', $this->userData['team']);
+        if ($teamId > 0) {
+            $req->bindValue(':team', $teamId);
         }
         $this->Db->execute($req);
 
-        return $this->Db->fetchAll($req);
+        return $req->fetchAll();
     }
 
     /**
@@ -209,7 +214,7 @@ class Users
      */
     public function readAllFromTeam(): array
     {
-        return $this->readFromQuery('', true);
+        return $this->readFromQuery('', $this->userData['team']);
     }
 
     public function getLockedUsersCount(): int
@@ -220,12 +225,21 @@ class Users
         return (int) $req->fetchColumn();
     }
 
+    public function update(ContentParamsInterface $params): bool
+    {
+        $sql = 'UPDATE users SET ' . $params->getTarget() . ' = :content WHERE userid = :userid';
+        $req = $this->Db->prepare($sql);
+        $req->bindValue(':content', $params->getContent());
+        $req->bindParam(':userid', $this->userData['userid'], PDO::PARAM_INT);
+        return $this->Db->execute($req);
+    }
+
     /**
      * Update user from the editusers template
      *
      * @param array<string, mixed> $params POST
      */
-    public function update(array $params): bool
+    public function updateUser(array $params): bool
     {
         $this->checkEmail($params['email']);
 
@@ -235,7 +249,7 @@ class Users
         // (Sys)admins can only disable 2FA
         // input is disabled if there is no mfa active so no need for an else case
         $mfaSql = '';
-        if ($params['use_mfa'] === 'off') {
+        if (isset($params['use_mfa']) && $params['use_mfa'] === 'off') {
             $mfaSql = ', mfa_secret = null';
         }
 
@@ -347,7 +361,10 @@ class Users
         $sql = 'UPDATE users SET validated = 1 WHERE userid = :userid';
         $req = $this->Db->prepare($sql);
         $req->bindParam(':userid', $this->userData['userid'], PDO::PARAM_INT);
-        return $this->Db->execute($req);
+        $res = $this->Db->execute($req);
+        $Notifications = new Notifications($this);
+        $Notifications->create(new CreateNotificationParams(Notifications::SELF_IS_VALIDATED));
+        return $res;
     }
 
     /**
@@ -408,6 +425,21 @@ class Users
         $req = $this->Db->prepare($sql);
         $req->bindParam(':userid', $this->userData['userid'], PDO::PARAM_INT);
         return $this->Db->execute($req);
+    }
+
+    private function notifyAdmins(array $admins, int $userid, int $validated): void
+    {
+        $body = array(
+            'userid' => $userid,
+        );
+        $notifCat = Notifications::USER_CREATED;
+        if ($validated === 0) {
+            $notifCat = Notifications::USER_NEED_VALIDATION;
+        }
+        foreach ($admins as $admin) {
+            $Notifications = new Notifications(new self((int) $admin));
+            $Notifications->create(new CreateNotificationParams($notifCat, $body));
+        }
     }
 
     // if the user is already archived, make sure there is no other account with the same email

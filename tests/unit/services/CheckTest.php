@@ -42,6 +42,21 @@ class CheckTest extends \PHPUnit\Framework\TestCase
         Check::idOrExplode(-1337);
     }
 
+    public function testUsergroup(): void
+    {
+        $this->assertEquals(1, Check::usergroup(1));
+        $this->assertEquals(2, Check::usergroup(2));
+        $this->assertEquals(3, Check::usergroup(3));
+        $this->assertEquals(4, Check::usergroup(4));
+
+        $this->expectException(IllegalActionException::class);
+        Check::usergroupOrExplode(-1337);
+        $this->expectException(IllegalActionException::class);
+        Check::usergroupOrExplode(0);
+        $this->expectException(IllegalActionException::class);
+        Check::usergroupOrExplode(5);
+    }
+
     public function testColor(): void
     {
         $this->assertEquals('AABBCC', Check::color('#AABBCC'));
@@ -99,5 +114,11 @@ class CheckTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals($token, Check::token($token));
         $this->expectException(IllegalActionException::class);
         Check::token('blah');
+    }
+
+    public function testInvalidTarget(): void
+    {
+        $this->expectException(IllegalActionException::class);
+        Check::target('Grogu');
     }
 }

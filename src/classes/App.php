@@ -16,14 +16,15 @@ use Elabftw\Exceptions\UnauthorizedException;
 use Elabftw\Models\AnonymousUser;
 use Elabftw\Models\AuthenticatedUser;
 use Elabftw\Models\Config;
+use Elabftw\Models\Notifications;
 use Elabftw\Models\Teams;
 use Elabftw\Models\Users;
 use Elabftw\Services\Check;
 use Elabftw\Traits\TwigTrait;
 use Elabftw\Traits\UploadTrait;
 use function in_array;
-use League\Flysystem\Adapter\Local;
 use League\Flysystem\Filesystem as Fs;
+use League\Flysystem\Local\LocalFilesystemAdapter;
 use Monolog\Handler\ErrorLogHandler;
 use Monolog\Logger;
 use function putenv;
@@ -42,7 +43,7 @@ class App
     use UploadTrait;
     use TwigTrait;
 
-    public const INSTALLED_VERSION = '4.2.4';
+    public const INSTALLED_VERSION = '4.3.0-alpha';
 
     public Users $Users;
 
@@ -55,6 +56,8 @@ class App
     public array $ok = array();
 
     public array $ko = array();
+
+    public array $notifsArr = array();
 
     public array $warning = array();
 
@@ -71,7 +74,7 @@ class App
         $this->Log->pushHandler(new ErrorLogHandler());
         $this->Users = new Users();
         // UPDATE SQL SCHEMA if necessary or show error message if version mismatch
-        $Update = new Update((int) $this->Config->configArr['schema'], new Sql(new Fs(new Local(dirname(__DIR__) . '/sql'))));
+        $Update = new Update((int) $this->Config->configArr['schema'], new Sql(new Fs(new LocalFilesystemAdapter(dirname(__DIR__) . '/sql'))));
         $Update->checkSchema();
     }
 
@@ -161,6 +164,9 @@ class App
         $teamConfigArr = $Teams->read(new ContentParams());
         $this->linkName = $teamConfigArr['link_name'];
         $this->linkHref = $teamConfigArr['link_href'];
+        // Notifs
+        $Notifications = new Notifications($this->Users);
+        $this->notifsArr = $Notifications->read(new ContentParams());
     }
 
     /**

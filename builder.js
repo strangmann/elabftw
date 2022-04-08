@@ -32,7 +32,6 @@ module.exports = {
       './src/ts/todolist.ts',
       './src/ts/ucp.ts',
       './src/ts/view.ts',
-      './src/ts/comments.ts',
       './src/ts/editusers.ts',
       './src/ts/search.ts',
       './src/ts/show.ts',
@@ -130,17 +129,6 @@ module.exports = {
       {
         test: /.(jpg|jpeg|png|svg)$/,
         type: 'asset/resource',
-      },
-      // transpile things with babel so javascript works with Edge
-      {
-        test: /\.m?js$/,
-        use: {
-          loader: 'babel-loader',
-          options: {
-            presets: ['@babel/preset-env'],
-            compact: true,
-          }
-        }
       },
       // expose jquery globally
       {

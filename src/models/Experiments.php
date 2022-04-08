@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 /**
  * @author Nicolas CARPi <nico-git@deltablot.email>
  * @copyright 2012 Nicolas CARPi
@@ -6,7 +6,6 @@
  * @license AGPL-3.0
  * @package elabftw
  */
-declare(strict_types=1);
 
 namespace Elabftw\Models;
 
@@ -15,7 +14,6 @@ use Elabftw\Exceptions\IllegalActionException;
 use Elabftw\Exceptions\ImproperActionException;
 use Elabftw\Interfaces\EntityParamsInterface;
 use Elabftw\Maps\Team;
-use Elabftw\Services\Filter;
 use Elabftw\Traits\InsertTagsTrait;
 use PDO;
 
@@ -76,19 +74,17 @@ class Experiments extends AbstractEntity
 
         // SQL for create experiments
         $sql = 'INSERT INTO experiments(title, date, body, category, elabid, canread, canwrite, datetime, metadata, userid)
-            VALUES(:title, :date, :body, :category, :elabid, :canread, :canwrite, NOW(), :metadata, :userid)';
+            VALUES(:title, CURDATE(), :body, :category, :elabid, :canread, :canwrite, NOW(), :metadata, :userid)';
         $req = $this->Db->prepare($sql);
-        $this->Db->execute($req, array(
-            'title' => $title,
-            'date' => Filter::kdate(),
-            'body' => $body,
-            'category' => $this->getStatus(),
-            'elabid' => $this->generateElabid(),
-            'canread' => $canread,
-            'canwrite' => $canwrite,
-            'metadata' => $metadata,
-            'userid' => $this->Users->userData['userid'],
-        ));
+        $req->bindParam(':title', $title, PDO::PARAM_STR);
+        $req->bindParam(':body', $body, PDO::PARAM_STR);
+        $req->bindValue(':category', $this->getStatus(), PDO::PARAM_INT);
+        $req->bindValue(':elabid', $this->generateElabid(), PDO::PARAM_STR);
+        $req->bindParam(':canread', $canread, PDO::PARAM_STR);
+        $req->bindParam(':canwrite', $canwrite, PDO::PARAM_STR);
+        $req->bindParam(':metadata', $metadata, PDO::PARAM_STR);
+        $req->bindParam(':userid', $this->Users->userData['userid'], PDO::PARAM_INT);
+        $this->Db->execute($req);
         $newId = $this->Db->lastInsertId();
 
         // insert the tags from the template
@@ -120,25 +116,19 @@ class Experiments extends AbstractEntity
      * Set the experiment as timestamped with a path to the token
      *
      * @param string $responseTime the date of the timestamp
-     * @param string $responsefilePath the file path to the timestamp token
      */
-    public function updateTimestamp(string $responseTime, string $responsefilePath): void
+    public function updateTimestamp(string $responseTime): void
     {
         $this->canOrExplode('write');
 
         $sql = 'UPDATE experiments SET
-            locked = 1,
-            lockedby = :userid,
-            lockedwhen = :when,
             timestamped = 1,
             timestampedby = :userid,
-            timestampedwhen = :when,
-            timestamptoken = :longname
+            timestampedwhen = :when
             WHERE id = :id;';
         $req = $this->Db->prepare($sql);
+        // the date recorded in the db will match the creation time of the timestamp token
         $req->bindParam(':when', $responseTime);
-        // the date recorded in the db has to match the creation time of the timestamp token
-        $req->bindParam(':longname', $responsefilePath);
         $req->bindParam(':userid', $this->Users->userData['userid'], PDO::PARAM_INT);
         $req->bindParam(':id', $this->id, PDO::PARAM_INT);
 
@@ -159,19 +149,17 @@ class Experiments extends AbstractEntity
         $title = $this->entityData['title'] . ' I';
 
         $sql = 'INSERT INTO experiments(title, date, body, category, elabid, canread, canwrite, datetime, userid, metadata)
-            VALUES(:title, :date, :body, :category, :elabid, :canread, :canwrite, NOW(), :userid, :metadata)';
+            VALUES(:title, CURDATE(), :body, :category, :elabid, :canread, :canwrite, NOW(), :userid, :metadata)';
         $req = $this->Db->prepare($sql);
-        $this->Db->execute($req, array(
-            'title' => $title,
-            'date' => Filter::kdate(),
-            'body' => $this->entityData['body'],
-            'category' => $this->getStatus(),
-            'elabid' => $this->generateElabid(),
-            'canread' => $this->entityData['canread'],
-            'canwrite' => $this->entityData['canwrite'],
-            'userid' => $this->Users->userData['userid'],
-            'metadata' => $this->entityData['metadata'],
-        ));
+        $req->bindParam(':title', $title, PDO::PARAM_STR);
+        $req->bindParam(':body', $this->entityData['body'], PDO::PARAM_STR);
+        $req->bindValue(':category', $this->getStatus(), PDO::PARAM_INT);
+        $req->bindValue(':elabid', $this->generateElabid(), PDO::PARAM_STR);
+        $req->bindParam(':canread', $this->entityData['canread'], PDO::PARAM_STR);
+        $req->bindParam(':canwrite', $this->entityData['canwrite'], PDO::PARAM_STR);
+        $req->bindParam(':metadata', $this->entityData['metadata'], PDO::PARAM_STR);
+        $req->bindParam(':userid', $this->Users->userData['userid'], PDO::PARAM_INT);
+        $this->Db->execute($req);
         $newId = $this->Db->lastInsertId();
 
         if ($this->id === null) {
@@ -185,23 +173,12 @@ class Experiments extends AbstractEntity
     }
 
     /**
-     * Destroy an experiment and all associated data
-     * The foreign key constraints will take care of associated tables
+     * Experiment is not actually deleted but the state is changed from normal to deleted
      */
     public function destroy(): bool
     {
-        $this->canOrExplode('write');
-
-        $this->Tags->destroyAll();
-        $this->Uploads->destroyAll();
-
-        $sql = 'DELETE FROM experiments WHERE id = :id';
-        $req = $this->Db->prepare($sql);
-        $req->bindParam(':id', $this->id, PDO::PARAM_INT);
-        $this->Db->execute($req);
-
-        // delete from pinned
-        return $this->Pins->cleanup();
+        // delete from pinned too
+        return parent::destroy() && $this->Pins->cleanup();
     }
 
     protected function getBoundEvents(): array
@@ -210,7 +187,8 @@ class Experiments extends AbstractEntity
         $req = $this->Db->prepare($sql);
         $req->bindParam(':id', $this->id, PDO::PARAM_INT);
         $this->Db->execute($req);
-        return $this->Db->fetchAll($req);
+
+        return $req->fetchAll();
     }
 
     /**

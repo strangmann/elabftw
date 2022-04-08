@@ -81,7 +81,7 @@ try {
             $tab = '5';
         }
 
-        if ($Request->request->has('mail_method')) {
+        if ($Request->request->has('mail_from')) {
             $tab = '6';
         }
 
@@ -95,6 +95,10 @@ try {
 
         if ($Request->request->has('ldap_host')) {
             $tab = '10';
+        }
+
+        if ($Request->request->has('uploads_storage')) {
+            $tab = '11';
         }
 
         $App->Config->updateAll($Request->request->all());

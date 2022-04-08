@@ -10,10 +10,10 @@
 namespace Elabftw\Services;
 
 use function dirname;
-use Elabftw\Exceptions\FilesystemErrorException;
+use Elabftw\Elabftw\FsTools;
 use Elabftw\Interfaces\MpdfProviderInterface;
-use function is_dir;
-use function mkdir;
+use Mpdf\Config\ConfigVariables;
+use Mpdf\Config\FontVariables;
 use Mpdf\Mpdf;
 
 /**
@@ -27,17 +27,25 @@ class MpdfProvider implements MpdfProviderInterface
 
     public function getInstance(): Mpdf
     {
-        // we use a custom tmp dir, not the same as Twig because its content gets deleted after pdf is generated
-        $tmpDir = dirname(__DIR__, 2) . '/cache/mpdf/';
-        if (!is_dir($tmpDir) && !mkdir($tmpDir, 0700, true) && !is_dir($tmpDir)) {
-            throw new FilesystemErrorException("Could not create the $tmpDir directory! Please check permissions on this folder.");
-        }
+        $defaultConfig = (new ConfigVariables())->getDefaults();
+        $fontDirs = $defaultConfig['fontDir'];
+
+        $defaultFontConfig = (new FontVariables())->getDefaults();
+        $fontData = $defaultFontConfig['fontdata'];
 
         // create the pdf
         $mpdf = new Mpdf(array(
             'format' => $this->format,
-            'tempDir' => $tmpDir,
+            'tempDir' => FsTools::getCacheFolder('mpdf'),
             'mode' => 'utf-8',
+            'fontDir' => array_merge($fontDirs, array(dirname(__DIR__, 2) . '/web/assets/fonts')),
+            'fontdata' => $fontData + array(
+                'lato' => array(
+                    'R' => 'lato-medium-webfont.ttf',
+                ),
+            ),
+            'default_font' => 'lato',
+            'whitelistStreamWrappers' => array('file'),
         ));
 
         // make sure we can read the pdf in a long time

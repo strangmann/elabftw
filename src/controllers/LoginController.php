@@ -107,6 +107,23 @@ class LoginController implements ControllerInterface
         );
         setcookie('icanhazcookies', $icanhazcookies, $cookieOptions);
 
+        // INITIAL TEAM SELECTION
+        if ($authType === 'teaminit' && $this->App->Session->get('initial_team_selection_required')) {
+            // create an unvalidated user in the requested team
+            ExistingUser::fromScratch(
+                $this->App->Session->get('teaminit_email'),
+                array((int) $this->App->Request->request->get('team_id')),
+                (string) $this->App->Request->request->get('teaminit_firstname'),
+                (string) $this->App->Request->request->get('teaminit_lastname'),
+            );
+            $this->App->Session->set('teaminit_done', true);
+            $this->App->Session->remove('initial_team_selection_required');
+            $location = '../../login.php';
+            echo "<html><head><meta http-equiv='refresh' content='1;url=$location' /><title>You are being redirected...</title></head><body>You are being redirected...</body></html>";
+            exit;
+        }
+
+
         // try to authenticate
         $AuthResponse = $this->getAuthService($authType)->tryAuth();
 
@@ -216,19 +233,7 @@ class LoginController implements ControllerInterface
             case 'saml':
                 $Saml = new Saml($this->App->Config, new Idps());
                 $idpId = (int) $this->App->Request->request->get('idpId');
-                // set a cookie to remember the idpid, used later on the assertion step
-                $cookieOptions = array(
-                    'expires' => time() + 300,
-                    'path' => '/',
-                    'domain' => '',
-                    'secure' => true,
-                    'httponly' => true,
-                    // IMPORTANT: because we get redirected from IDP, SameSite attribute has to be None here!
-                    // otherwise cookies won't be sent and we won't be able to know for which IDP we assert the response
-                    // during the second part of the auth
-                    'samesite' => 'None',
-                );
-                setcookie('idp_id', (string) $idpId, $cookieOptions);
+                // No cookie is required anymore, as entity Id is extracted from response
                 $settings = $Saml->getSettings($idpId);
                 return new SamlAuth(new SamlAuthLib($settings), $this->App->Config->configArr, $settings);
 

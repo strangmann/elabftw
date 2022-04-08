@@ -9,10 +9,9 @@
 
 namespace Elabftw\Elabftw;
 
-use League\Flysystem\Adapter\Local;
-use League\Flysystem\FileNotFoundException;
+use Elabftw\Services\StorageFactory;
 use League\Flysystem\Filesystem as Fs;
-use RuntimeException;
+use League\Flysystem\UnableToReadFile;
 
 class SqlTest extends \PHPUnit\Framework\TestCase
 {
@@ -20,7 +19,7 @@ class SqlTest extends \PHPUnit\Framework\TestCase
 
     protected function setUp(): void
     {
-        $this->Sql = new Sql(new Fs(new Local(dirname(__DIR__, 2) . '/_data')));
+        $this->Sql = new Sql((new StorageFactory(StorageFactory::FIXTURES))->getStorage()->getFs());
     }
 
     public function testExecFile(): void
@@ -30,16 +29,16 @@ class SqlTest extends \PHPUnit\Framework\TestCase
 
     public function testExecNonExistingFile(): void
     {
-        $this->expectException(FileNotFoundException::class);
+        $this->expectException(UnableToReadFile::class);
         $this->Sql->execFile('purple.sql');
     }
 
     public function testBrokenFilesystem(): void
     {
         $fsMock = $this->createMock(Fs::class);
-        $fsMock->method('read')->willReturn(false);
+        $fsMock->method('read')->will($this->throwException(new UnableToReadFile()));
         $Sql = new Sql($fsMock);
-        $this->expectException(RuntimeException::class);
+        $this->expectException(UnableToReadFile::class);
         $Sql->execFile('osef');
     }
 }

@@ -5,7 +5,7 @@
  * @license AGPL-3.0
  * @package elabftw
  */
-declare let key: any;
+declare let key: any; // eslint-disable-line @typescript-eslint/no-explicit-any
 import { notif } from './misc';
 import { getTinymceBaseConfig, quickSave } from './tinymce';
 import { EntityType, Target, Upload, Payload, Method, Action } from './interfaces';
@@ -200,7 +200,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // DESTROY ENTITY
     } else if (el.matches('[data-action="destroy"]')) {
-      if (confirm(i18next.t('entity-delete-warning'))) {
+      if (confirm(i18next.t('generic-delete-warning'))) {
         const path = window.location.pathname;
         EntityC.destroy(entity.id).then(json => {
           if (json.res) {

@@ -9,6 +9,7 @@
 
 namespace Elabftw\Services;
 
+use function date;
 use Elabftw\Elabftw\Db;
 use Elabftw\Elabftw\Tools;
 use Elabftw\Interfaces\FileMakerInterface;
@@ -16,6 +17,7 @@ use Elabftw\Models\Teams;
 use Elabftw\Models\Users;
 use Elabftw\Traits\CsvTrait;
 use Elabftw\Traits\UploadTrait;
+use PDO;
 
 /**
  * Create a report of usage for all users
@@ -37,7 +39,7 @@ class MakeReport implements FileMakerInterface
      */
     public function getFileName(): string
     {
-        return Filter::kdate() . '-report.elabftw.csv';
+        return date('Y-m-d') . '-report.elabftw.csv';
     }
 
     /**
@@ -98,5 +100,14 @@ class MakeReport implements FileMakerInterface
             $allUsers[$key]['exp_timestamped_total'] = $UsersHelper->countTimestampedExperiments();
         }
         return $allUsers;
+    }
+
+    private function getDiskUsage(int $userid): int
+    {
+        $sql = 'SELECT SUM(filesize) FROM uploads WHERE userid = :userid';
+        $req = $this->Db->prepare($sql);
+        $req->bindParam(':userid', $userid, PDO::PARAM_INT);
+        $this->Db->execute($req);
+        return (int) $req->fetchColumn();
     }
 }

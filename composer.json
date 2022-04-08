@@ -20,31 +20,35 @@
     "ext-zip": "*",
     "defuse/php-encryption": "2.3.*",
     "mpdf/mpdf": "8.0.*",
-    "swiftmailer/swiftmailer": "^6.3.0",
     "onelogin/php-saml": "^4.0.0",
     "guzzlehttp/guzzle": "^7.0.1",
-    "symfony/http-foundation": "^5.1.0",
-    "twig/twig": "^2.13.0",
-    "twig/extensions": "1.5.*",
+    "symfony/http-foundation": "^6.0",
+    "twig/twig": "^3.3.8",
     "monolog/monolog": "^2.1.0",
     "maennchen/zipstream-php": "^2.0.0",
     "league/csv": "^9.4",
     "mpdf/qrcode": "^1.0",
     "symfony/console": "^5.0",
-    "symfony/process": "^5.0",
+    "symfony/process": "^6.0",
     "league/commonmark": "^2.0",
-    "symfony/filesystem": "^5.0",
-    "symfony/mime": "^5.1",
+    "symfony/filesystem": "^6.0",
+    "symfony/mime": "^6.0",
     "robthree/twofactorauth": "^1.7.0",
     "directorytree/ldaprecord": "^2.0.3",
-    "league/flysystem": "^1.1",
-    "league/flysystem-memory": "^1.0",
+    "league/flysystem": "^3.0",
+    "league/flysystem-memory": "^3.0",
     "lcobucci/jwt": "^4.1",
-    "ezyang/htmlpurifier": "^4.13"
+    "ezyang/htmlpurifier": "^4.13",
+    "symfony/mailer": "^6.0",
+    "xemlock/htmlpurifier-html5": "^0.1.11",
+    "aws/aws-sdk-php": "^3.209",
+    "league/flysystem-aws-s3-v3": "^3.0",
+    "jblond/twig-trans": "^1.0",
+    "twig/intl-extra": "^3.3"
   },
   "require-dev": {
     "roave/security-advisories": "dev-master",
-    "codeception/codeception": "^4.0",
+    "codeception/codeception": "^4.1.24",
     "pyrech/composer-changelogs": "^1.8.0",
     "friendsofphp/php-cs-fixer": "^3.0.0",
     "codeception/module-webdriver": "^1.0.0",
@@ -81,10 +85,31 @@
       "Elabftw\\Services\\": [
         "src/services"
       ],
+      "Elabftw\\Services\\AdvancedSearchQuery\\Collectors\\": [
+        "src/services/advancedSearchQuery/collectors"
+      ],
+      "Elabftw\\Services\\AdvancedSearchQuery\\Exceptions\\": [
+        "src/services/advancedSearchQuery/exceptions"
+      ],
+      "Elabftw\\Services\\AdvancedSearchQuery\\Grammar\\": [
+        "src/services/advancedSearchQuery/grammar",
+        "cache/advancedSearchQuery"
+      ],
+      "Elabftw\\Services\\AdvancedSearchQuery\\Interfaces\\": [
+        "src/services/advancedSearchQuery/interfaces"
+      ],
+      "Elabftw\\Services\\AdvancedSearchQuery\\Visitors\\": [
+        "src/services/advancedSearchQuery/visitors"
+      ],
       "Elabftw\\Traits\\": [
         "src/traits"
       ]
     }
   },
-  "license": "AGPL-3.0-or-later"
+  "license": "AGPL-3.0-or-later",
+  "config": {
+    "allow-plugins": {
+      "pyrech/composer-changelogs": true
+    }
+  }
 }

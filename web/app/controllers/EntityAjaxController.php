@@ -14,6 +14,7 @@ use function dirname;
 use Elabftw\Exceptions\IllegalActionException;
 use Elabftw\Exceptions\ImproperActionException;
 use Elabftw\Exceptions\UnauthorizedException;
+use Elabftw\Models\Config;
 use Elabftw\Models\Experiments;
 use Elabftw\Models\Items;
 use Elabftw\Models\ItemsTypes;
@@ -34,11 +35,12 @@ use Exception;
 use GuzzleHttp\Client;
 use function mb_convert_encoding;
 use PDOException;
+use const SITE_URL;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
 /**
  * Deal with things common to experiments and items like tags, uploads, quicksave and lock
- *
+ * @deprecated new code should use proper json payload on requesthandler
  */
 require_once dirname(__DIR__) . '/init.inc.php';
 
@@ -58,11 +60,6 @@ try {
         $id = (int) $Request->query->get('id');
     }
 
-    /**
-     * TODO replace block below with this
-    $Processor = new RequestProcessor($App->Users, $Request);
-    $Model = $Processor->getModel();
-     */
     if ($Request->request->get('type') === 'experiments' ||
         $Request->query->get('type') === 'experiments' ||
         $Request->request->get('type') === 'experiment' ||
@@ -92,19 +89,6 @@ try {
         $Response->setData($mentionArr);
     }
 
-    // GET BODY
-    if ($Request->query->has('getBody')) {
-        $Entity->canOrExplode('read');
-        $body = $Entity->entityData['body'];
-        if ($Request->query->get('editor') === 'tiny') {
-            $body = Tools::md2html($body);
-        }
-        $Response->setData(array(
-            'res' => true,
-            'msg' => $body,
-        ));
-    }
-
     // GET LINK LIST
     if ($Request->query->has('term') && !$Request->query->has('mention')) {
         // bind autocomplete targets the experiments
@@ -127,7 +111,7 @@ try {
             throw new IllegalActionException('Can only share experiments or items.');
         }
         $Entity->canOrExplode('read');
-        $link = Tools::getUrl($Request) . '/' . $Entity->page . '.php?mode=view&id=' . $Entity->id . '&elabid=' . $Entity->entityData['elabid'];
+        $link = SITE_URL . '/' . $Entity->page . '.php?mode=view&id=' . $Entity->id . '&elabid=' . $Entity->entityData['elabid'];
         $Response->setData(array(
             'res' => true,
             'msg' => $link,
@@ -170,19 +154,19 @@ try {
             $Maker = new MakeTimestamp($config, $Entity);
         }
 
-        $dataPath = $Maker->generatePdf();
+        $pdfBlob = $Maker->generatePdf();
         $TimestampUtils = new TimestampUtils(
             new Client(),
-            $dataPath,
+            $pdfBlob,
             $Maker->getTimestampParameters(),
             new TimestampResponse(),
         );
         $tsResponse = $TimestampUtils->timestamp();
-        $Maker->saveTimestamp($tsResponse);
+        $Maker->saveTimestamp($TimestampUtils->getDataPath(), $tsResponse);
     }
 
     // BLOXBERG
-    if ($Request->request->has('bloxberg')) {
+    if ($Request->request->has('bloxberg') && $App->Config->configArr['blox_enabled']) {
         $Make = new MakeBloxberg(new Client(), $Entity);
         $Response->setData(array(
             'res' => $Make->timestamp(),
@@ -195,11 +179,6 @@ try {
         $Entity->Uploads->createFromString('png', $Request->request->get('realName'), $Request->request->get('content'));
     }
 
-    // TOGGLE PIN
-    if ($Request->request->has('togglePin')) {
-        $Entity->Pins->togglePin();
-    }
-
     // UPDATE VISIBILITY
     if ($Request->request->has('updatePermissions')) {
         $Entity->updatePermissions($Request->request->get('rw'), $Request->request->get('value'));
@@ -207,7 +186,9 @@ try {
 
     // CREATE UPLOAD
     if ($Request->request->has('upload')) {
-        $Entity->Uploads->create(new CreateUpload($Request));
+        $realName = $Request->files->get('file')->getClientOriginalName();
+        $filePath = $Request->files->get('file')->getPathname();
+        $Entity->Uploads->create(new CreateUpload($realName, $filePath));
     }
 
     // ADD MOL FILE OR PNG

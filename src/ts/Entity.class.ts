@@ -50,6 +50,7 @@ export default class Entity {
       },
       content: content,
       target: target,
+      notif: true,
     };
     return this.sender.send(payload);
   }
@@ -72,6 +73,21 @@ export default class Entity {
         type: this.model,
         id: id,
       },
+      notif: true,
+    };
+    return this.sender.send(payload);
+  }
+
+  pin(id: number): Promise<ResponseMsg> {
+    const payload: Payload = {
+      method: Method.POST,
+      action: Action.Pin,
+      model: this.model,
+      entity: {
+        type: this.model,
+        id: id,
+      },
+      notif: true,
     };
     return this.sender.send(payload);
   }

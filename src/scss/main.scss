@@ -85,11 +85,6 @@ body::before {
     padding: 0 5%;
 }
 
-/* paragraphs */
-p {
-    color: $maingray;
-}
-
 /* LINKS */
 a,
 .link-like {
@@ -157,6 +152,7 @@ select {
 #dropdownMenu1:focus {
     border-color: $elabblue;
     box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 8px rgba(41, 174, 185, 0.6);
+    z-index: 3;
 }
 
 .dropdown-item > a {
@@ -804,28 +800,18 @@ the form-control fails to do that so we do the border ourselves */
     cursor: pointer;
 }
 
-.editable button {
-    border-radius: 25px;
-    color: #fff;
-    font-size: 11px;
-    letter-spacing: 1px;
-    margin: 0 5px;
-    padding: 10px 20px;
-    text-align: center;
-    text-transform: uppercase;
-}
-
-.editable input {
-    margin: 0 0 15px;
-}
-
 .comment-header {
-    background-color: #f7f7f7;
-    padding: 5px;
+    background-color: $verylightgray;
+}
+
+/* highlight on hover: for editable/malleable elements
+ * it's $elabblue but less opaque
+ */
+.hl-hover:hover {
+    background-color: rgba(41, 174, 185, 0.5);
 }
 
 #commentsCreateArea {
-    border: 1px solid #ccc;
     border-radius: 5px;
     margin: 10px 0;
     padding: 20px;
@@ -902,7 +888,12 @@ the form-control fails to do that so we do the border ourselves */
 /* elabid */
 .elabid {
     color: $maingray;
+    overflow-wrap: break-word;
     text-align: right;
+}
+
+.thumbnail {
+    overflow-wrap: break-word;
 }
 
 /* TAGS */
@@ -913,11 +904,6 @@ the form-control fails to do that so we do the border ourselves */
     font: bold 13px Verdana, Arial, Helvetica, sans-serif;
     padding: 2px 5px;
 
-}
-
-.tag-delete:hover {
-    color: $darkred !important;
-    transition: color 0.8s ease;
 }
 
 /* print only the main div */
@@ -1093,7 +1079,8 @@ the form-control fails to do that so we do the border ourselves */
     pointer-events: none;
 }
 
-.clickable:hover {
+.clickable:hover,
+[data-action] {
     cursor: pointer;
 }
 
@@ -1106,6 +1093,20 @@ the form-control fails to do that so we do the border ourselves */
 /* font awesome icons color */
 .svg-inline--fa {
     color: $maingray;
+}
+
+/* custom font awesome icon size */
+.navbar-icon {
+    color: $lightgray;
+    font-size: 170%;
+
+    &.active {
+        color: $elabblue;
+    }
+}
+
+[data-icon='bell'].active {
+    color: $elabblue;
 }
 
 /* for icons such as pin */
@@ -1175,6 +1176,10 @@ input[type='color'] {
  */
 #main-nav {
     background-color: inherit;
+
+    @media (min-width: 992px) {
+        height: 43px;
+    }
     margin-right: 120px !important;
 }
 
@@ -1226,6 +1231,12 @@ input[type='color'] {
     border-top-left-radius: 0;
 }
 
+/* fix border radius for custom-select. brr = border radius right */
+.brr-none {
+    border-bottom-right-radius: 0;
+    border-top-right-radius: 0;
+}
+
 /* scroll to top of page button */
 .floating-middle-right {
     position: fixed;
@@ -1268,5 +1279,23 @@ input[type='color'] {
 
     100% {
         transform: rotate(360deg);
+    }
+}
+
+/* notifications */
+.notification {
+    border-top: 1px solid $verylightgray;
+
+    .relative-moment {
+        color: $lightgray;
+        font-size: 80%;
+    }
+}
+
+.notification[data-ack='0'] {
+    background-color: $elabblue;
+
+    span {
+        color: $lightwhite;
     }
 }

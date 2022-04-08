@@ -10,13 +10,14 @@ declare(strict_types=1);
 
 namespace Elabftw\Services;
 
-use Elabftw\Exceptions\DatabaseErrorException;
+use Elabftw\Elabftw\TagParams;
 use Elabftw\Exceptions\ImproperActionException;
+use Elabftw\Models\Items;
 use Elabftw\Models\Users;
 use Elabftw\Traits\EntityTrait;
 use League\Csv\Info as CsvInfo;
 use League\Csv\Reader;
-use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 /**
  * Import items from a csv file.
@@ -25,23 +26,18 @@ class ImportCsv extends AbstractImport
 {
     use EntityTrait;
 
+    private const TAGS_SEPARATOR = '|';
+
     // number of items we got into the database
     public int $inserted = 0;
 
     // the separation character of the csv provided by user
     private string $delimiter;
 
-    /**
-     * Constructor
-     *
-     * @param Users $users instance of Users
-     * @param Request $request instance of Request
-     * @return void
-     */
-    public function __construct(Users $users, Request $request)
+    public function __construct(Users $users, int $target, string $delimiter, string $canread, UploadedFile $uploadedFile)
     {
-        parent::__construct($users, $request);
-        $this->delimiter = $request->request->filter('delimiter', null, FILTER_SANITIZE_STRING);
+        parent::__construct($users, $target, $canread, $uploadedFile);
+        $this->delimiter = Filter::sanitize($delimiter);
         if ($this->delimiter === 'tab') {
             $this->delimiter = "\t";
         }
@@ -62,10 +58,8 @@ class ImportCsv extends AbstractImport
 
         // SQL for importing
         $sql = 'INSERT INTO items(team, title, date, body, userid, category, canread, elabid)
-            VALUES(:team, :title, :date, :body, :userid, :category, :canread, :elabid)';
+            VALUES(:team, :title, CURDATE(), :body, :userid, :category, :canread, :elabid)';
         $req = $this->Db->prepare($sql);
-
-        $date = Filter::kdate();
 
         // now loop the rows and do the import
         foreach ($rows as $row) {
@@ -77,15 +71,19 @@ class ImportCsv extends AbstractImport
 
             $req->bindParam(':team', $this->Users->userData['team']);
             $req->bindParam(':title', $row['title']);
-            $req->bindParam(':date', $date);
             $req->bindParam(':body', $body);
             $req->bindParam(':userid', $this->Users->userData['userid']);
             $req->bindParam(':category', $this->target);
             $req->bindParam(':canread', $this->canread);
             $req->bindParam(':elabid', $elabid);
-            if ($req->execute() === false) {
-                throw new DatabaseErrorException();
+            $this->Db->execute($req);
+            $itemId = $this->Db->lastInsertId();
+
+            // insert tags from the tags column
+            if (isset($row['tags'])) {
+                $this->insertTags($row['tags'], $itemId);
             }
+
             $this->inserted++;
         }
     }
@@ -99,6 +97,8 @@ class ImportCsv extends AbstractImport
     {
         // get rid of the title
         unset($row['title']);
+        // and the tags
+        unset($row['tags']);
         // deal with the rest of the columns
         $body = '';
         foreach ($row as $subheader => $content) {
@@ -110,6 +110,18 @@ class ImportCsv extends AbstractImport
         }
 
         return $body;
+    }
+
+    private function insertTags(string $tags, int $itemId): void
+    {
+        $tagsArr = explode(self::TAGS_SEPARATOR, $tags);
+        $Entity = new Items($this->Users, $itemId);
+        foreach ($tagsArr as $tag) {
+            // maybe it's empty for this row
+            if ($tag) {
+                $Entity->Tags->create(new TagParams($tag));
+            }
+        }
     }
 
     /**

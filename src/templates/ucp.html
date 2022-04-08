@@ -6,6 +6,7 @@
   <li data-action='switch-tab' data-tabtarget='2'>{{ 'Account'|trans }}</li>
   <li data-action='switch-tab' data-tabtarget='3'>{{ 'Templates'|trans }}</li>
   <li data-action='switch-tab' data-tabtarget='4'>{{ 'API keys'|trans }}</li>
+  <li data-action='switch-tab' data-tabtarget='5'>{{ 'Notifications'|trans }}</li>
 </ul>
 
 <!-- loading spinner -->
@@ -353,14 +354,16 @@
   <h3>{{ 'API keys'|trans }}</h3>
   <div id='newKeyPlaceholder'></div>
   <h5>{{ 'Create new key'|trans }}</h5>
-    <label for='apikeyName'>{{ 'Name'|trans }}</label>
-    <input id='apikeyName' type='text' />
-    <label for='apikeyCanwrite'>{{ 'Permissions'|trans }}</label>
-    <select id='apikeyCanwrite' autocomplete='off'>
+  <div class='row form-inline mx-0'>
+    <label for='apikeyName' class='mb-2'>{{ 'Name'|trans }}</label>
+    <input id='apikeyName' type='text' class='form-control mb-2 mr-sm-2' />
+    <label for='apikeyCanwrite' class='mb-2'>{{ 'Permissions'|trans }}</label>
+    <select id='apikeyCanwrite' autocomplete='off' class='form-control mb-2 mr-sm-2'>
       <option value='0'>{{ 'Read Only'|trans }}</option>
       <option value='1'>{{ 'Read/Write'|trans }}</option>
     </select>
-    <button class='button btn btn-primary' type='submit' data-action='create-apikey'>{{ 'Generate an API Key'|trans }}</button>
+    <button class='button btn btn-primary mb-2' type='submit' data-action='create-apikey'>{{ 'Generate an API Key'|trans }}</button>
+  </div>
 
   <h5>{{ 'Existing keys'|trans }}</h5>
   <table id='apiTable' class='table'>
@@ -384,6 +387,29 @@
         </tr>
       {% endfor %}
     </tbody>
+  </table>
+</div>
+
+<!-- TAB 5 - NOTIFICATIONS SETTINGS -->
+<div class='box' data-tabcontent='5' hidden>
+  <h3>{{ 'Notifications settings'|trans }}</h3>
+  <table class='mt-4'>
+    <tr>
+      <th>{{ 'Notification category'|trans }}</th>
+      <th>{{ 'Web'|trans }}</th>
+      <th>{{'Email'|trans }}</th>
+    </tr>
+    {% for notif in notificationsSettings %}
+      <tr>
+        <td>{{ notif.designation }}</td>
+        <td>
+          <input type='checkbox' data-trigger='change' data-model='user' data-target='{{ notif.setting }}' {{ App.Users.userData[notif.setting] == '1' ? " checked='checked'" }} />
+        </td>
+        <td>
+          <input type='checkbox' data-trigger='change' data-model='user' data-target='{{ notif.setting }}_email' {{ App.Users.userData[notif.setting ~ '_email'] == '1' ? " checked='checked'" }}/>
+        </td>
+      </tr>
+    {% endfor %}
   </table>
 </div>
 <!-- END PAGE -->

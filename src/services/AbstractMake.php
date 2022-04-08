@@ -12,22 +12,22 @@ namespace Elabftw\Services;
 
 use function dirname;
 use Elabftw\Elabftw\Db;
-use Elabftw\Elabftw\Tools;
-use Elabftw\Exceptions\FilesystemErrorException;
+use Elabftw\Elabftw\FsTools;
 use Elabftw\Models\AbstractEntity;
 use Elabftw\Traits\UploadTrait;
-use function file_get_contents;
-use Symfony\Component\HttpFoundation\Request;
+use const SITE_URL;
 
 /**
  * Mother class of the Make* services
- *
  */
 abstract class AbstractMake
 {
     use UploadTrait;
 
     public string $filePath = '';
+
+    // a place to gather errors or warnings generated during the making
+    public array $errors = array();
 
     protected Db $Db;
 
@@ -50,11 +50,8 @@ abstract class AbstractMake
      */
     protected function getCss(): string
     {
-        $css = file_get_contents(dirname(__DIR__, 2) . '/web/assets/pdf.min.css');
-        if ($css === false) {
-            throw new FilesystemErrorException('Cannot read the minified css file!');
-        }
-        return $css;
+        $assetsFs = FsTools::getFs(dirname(__DIR__, 2) . '/web/assets');
+        return $assetsFs->read('pdf.min.css');
     }
 
     /**
@@ -62,11 +59,13 @@ abstract class AbstractMake
      *
      * @return string url to the item/experiment
      */
-    protected function getUrl(): string
+    protected function getUrl(?int $entityId = null): string
     {
-        $Request = Request::createFromGlobals();
-        $url = Tools::getUrl($Request) . '/' . $this->Entity->page . '.php';
-
-        return $url . '?mode=view&id=' . (string) $this->Entity->id;
+        return sprintf(
+            '%s/%s.php?mode=view&id=%d',
+            SITE_URL,
+            $this->Entity->page,
+            $entityId ?? $this->Entity->id,
+        );
     }
 }

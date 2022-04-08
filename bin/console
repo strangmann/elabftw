@@ -17,6 +17,7 @@ require_once dirname(__DIR__) . '/config.php';
 
 $Application = new Application();
 
+$Application->add(new CacheClear());
 $Application->add(new CheckDatabase());
 $Application->add(new CleanDatabase());
 $Application->add(new UpdateDatabase());
@@ -28,5 +29,8 @@ $Application->add(new PopulateDatabase());
 $Application->add(new PruneRevisions());
 $Application->add(new MfaCode());
 $Application->add(new AddMissingLinks());
+$Application->add(new SendNotifications());
+$Application->add(new PruneUploads());
+$Application->add(new MigrateUploads());
 
 $Application->run();

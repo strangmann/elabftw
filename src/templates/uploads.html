@@ -1,95 +1,96 @@
 <!-- UPLOADED FILES -->
 <div id='filesdiv'>
-{% if uploadsArr %}
+  {% if uploadsArr %}
     <div class='box'>
-        <i class='fas fa-paperclip mr-1 align-baseline'></i><h3 class='d-inline'>{% trans %}Attached file
+      <h3 title='{{ 'Toggle visibility'|trans }}' data-action='toggle-next' data-icon='uploadedFilesIcon'><i id='uploadedFilesIcon' class='fas fa-chevron-circle-down'></i> {% trans %}Attached file
             {% plural uploadsArr|length %}
             Attached files
             {% endtrans %}
-        </h3>
-        <!-- toggle visibility of uploaded files -->
-        <a data-action='toggle-next' class='clickable float-right' title='{{ 'Toggle visibility'|trans }}'>
-          <i class='fas fa-eye'></i>
-        </a>
-
-        <div class='row' id='uploadsDiv'>
+      </h3>
+      <div class='row' id='uploadsDiv' data-save-hidden='uploadedFilesDiv'>
         {% for upload in uploadsArr %}
-            {% set ext = upload.real_name|getExt %}
+          {% set ext = upload.real_name|getExt %}
+          <div class='col-md-4 col-sm-6'>
+            <div class='thumbnail box' data-type='{{ Entity.type }}' data-id='{{ Entity.id }}' style='overflow: visible'>
+              {% if mode == 'edit' %}
+                <!-- DROPDOWN MENU FOR UPLOAD -->
+                <div class='dropdown'>
+                  <a class='clickable float-right p-2' data-toggle='dropdown' aria-haspopup='true' aria-expanded='false' title='{{ 'More options'|trans }}' aria-label='{{ 'More options'|trans }}' role='button'>
+                    <i class='fas fa-ellipsis-v'></i>
+                  </a>
 
-            <div class='col-md-4 col-sm-6'>
-                <div class='thumbnail box' data-type='{{ Entity.type }}' data-id='{{ Entity.id }}' style='overflow: visible'>
-                  {% if mode == 'edit' %}
-                    <div class='dropdown'>
-                      <a class='clickable float-right p-2' data-toggle='dropdown' aria-haspopup='true' aria-expanded='false' title='{{ 'More options'|trans }}' aria-label='{{ 'More options'|trans }}' role='button'>
-                        <i class='fas fa-ellipsis-v'></i>
-                      </a>
-                      <div class='dropdown-menu dropdown-menu-right' aria-label='{{ 'More options'|trans }}'>
+                  <div class='dropdown-menu dropdown-menu-right' aria-label='{{ 'More options'|trans }}'>
 
-                        <!-- INSERT IN TEXT in edit mode for images -->
-                        {% if mode == 'edit' and ext matches '/(jpg|jpeg|png|gif|svg)$/i' %}
-                          <a class='dropdown-item inserter clickable' data-link='{{ upload.long_name }}' data-uploadid='{{ upload.id }}'>
-                            <i class='fas fa-image mr-1'></i>{{ 'Insert in text at cursor position'|trans }}</a>
-                        {% endif %}
+                    <!-- INSERT IN TEXT in edit mode for images -->
+                    {% if ext matches '/(jpg|jpeg|png|gif|svg)$/i' %}
+                      <a class='dropdown-item inserter clickable' data-link='{{ upload.long_name }}' data-uploadid='{{ upload.id }}'>
+                        <i class='fas fa-image mr-1'></i>{{ 'Insert in text at cursor position'|trans }}</a>
+                    {% endif %}
 
-                        <!-- Edit filename -->
-                        <a class='dropdown-item clickable' data-action='rename-upload' data-id='{{ upload.id }}' data-type='{{ upload.type }}'
-                          data-itemid='{{ upload.item_id }}' data-msg='{{ 'Edit filename'|trans }}' title='{{ 'Edit filename'|trans }}'>
-                          <i class='fas fa-pencil-alt mr-1'></i>{{ 'Edit filename'|trans }}</a>
-
-
-                        <!-- Annotate image -->
-                        {% if mode == 'edit' and ext matches '/(jpg|jpeg|png|gif)$/i' %}
-                          <a class='dropdown-item clickable annotateImg' data-itemid='{{ upload.item_id }}' data-id='{{ upload.id }}' data-type='{{ upload.type }}' data-path='{{ upload.long_name }}'>
-                            <i class='fas fa-paint-brush mr-1'></i>{{ 'Annotate this image'|trans }}</a>
-                        {% endif %}
-
-                        <!-- Save mol file as image -->
-                        {% if mode == 'edit' and ext matches '/(mol)$/i' %}
-                          <a class='dropdown-item saveAsImage clickable' data-canvasid='molFile_{{ upload.id }}' data-name='{{ upload.real_name }}'>
-                          <i class='fas fa-image mr-1'></i>{{ 'Save as image'|trans }}</a>
-                        {% endif %}
+                    <!-- Edit filename -->
+                    <a class='dropdown-item clickable' data-action='rename-upload' data-id='{{ upload.id }}' data-type='{{ upload.type }}'
+                      data-itemid='{{ upload.item_id }}' data-msg='{{ 'Edit filename'|trans }}' title='{{ 'Edit filename'|trans }}'>
+                      <i class='fas fa-pencil-alt mr-1'></i>{{ 'Edit filename'|trans }}</a>
 
 
-                        <!-- Upload a new version -->
-                        <a class='dropdown-item clickable' data-action='replace-upload' data-uploadid='{{ upload.id }}'>
-                          <i class='fas fa-sync-alt mr-1'></i>{{ 'Upload a new version of this file'|trans }}</a>
+                    <!-- Annotate image -->
+                    {% if ext matches '/(jpg|jpeg|png|gif)$/i' %}
+                      <a class='dropdown-item clickable annotateImg' data-itemid='{{ upload.item_id }}' data-id='{{ upload.id }}' data-type='{{ upload.type }}' data-path='{{ upload.long_name }}'>
+                        <i class='fas fa-paint-brush mr-1'></i>{{ 'Annotate this image'|trans }}</a>
+                    {% endif %}
 
+                    <!-- Save mol file as image -->
+                    {% if ext matches '/(mol)$/i' %}
+                      <a class='dropdown-item saveAsImage clickable' data-canvasid='molFile_{{ upload.id }}' data-name='{{ upload.real_name }}'>
+                      <i class='fas fa-image mr-1'></i>{{ 'Save as image'|trans }}</a>
+                    {% endif %}
 
-                        <div class='dropdown-divider'></div>
-                        <a class='dropdown-item hover-danger clickable' data-action='destroy-upload' data-uploadid='{{ upload.id }}'>
-                          <i class='fas fa-trash-alt fa-fw mr-1' title='{{ 'Delete'|trans }}'></i>{{ 'Delete'|trans }}
-                        </a>
-                      <!--a class='uploadsDestroy clickable'  data-msg='{{ 'Delete this?'|trans }}' title='{{ 'Delete'|trans }}'-->
-                      </div>
-                    </div>
+                    <!-- Upload a new version -->
+                    <a class='dropdown-item clickable' data-action='replace-upload' data-uploadid='{{ upload.id }}'>
+                      <i class='fas fa-sync-alt mr-1'></i>{{ 'Upload a new version of this file'|trans }}</a>
+
+                    <!-- More info -->
+                    <a class='dropdown-item clickable' data-action='more-info-upload' data-uploadid='{{ upload.id }}'>
+                      <i class='fas fa-info-circle mr-1'></i>{{ 'More information'|trans }}</a>
+
+                    <!-- DESTROY -->
+                    <div class='dropdown-divider'></div>
+                    <a class='dropdown-item hover-danger clickable' data-action='destroy-upload' data-uploadid='{{ upload.id }}'>
+                      <i class='fas fa-trash-alt fa-fw mr-1' title='{{ 'Delete'|trans }}'></i>{{ 'Delete'|trans }}
+                    </a>
+                  </div>
+                </div>
+              {% endif %}
+
+              {% if ext matches '/(jpg|jpeg|png|gif|tif|tiff|pdf|eps|svg|heic)$/i' %}
+              {# don't make the thumbnail clickable if it's a tif #}
+                {% if ext matches '/(jpg|jpeg|png|gif|pdf|eps|svg|heic)$/i' %}
+                  <div class='text-center'>
+                    <a class='text-break' href='app/download.php?f={{ upload.long_name }}&storage={{ upload.storage }}'
+                       {% if upload.real_name matches '/(jpg|jpeg|png|gif)$/i' %}
+                           data-fancybox='group'
+                       {% endif %}
+                       {% if upload.comment != 'Click to add a comment' %}
+                           title='{{ upload.comment }}' data-caption='{{ upload.comment }}'
+                       {% endif %}
+                       >
+                {% endif %}
+                {% set thumb_name = upload.long_name ~ '_th.jpg' %}
+                <!-- old timestamp pdf don't have a thumbnail, so don't try to display one for them -->
+                {% if App.Users.userData.uploads_layout %}
+                  {% if ext matches '/(jpg|jpeg|png|gif|tif|tiff|pdf|eps|svg|heic)$/i' %}
+                    <img class='thumb img-thumbnail rounded' class='text-break' src='app/download.php?f={{ thumb_name }}&storage={{ upload.storage }}' alt='thumbnail' />
+                  {% else %}
+                  <i class='fas {{ ext2icon(ext) }} thumb rounded mx-auto d-block'></i>
                   {% endif %}
-
-                    {% if upload.real_name matches '/\.(jpg|jpeg|png|gif|tif|tiff|pdf|eps|svg|heic)$/i' %}
-                    {# don't make the thumbnail clickable if it's a tif #}
-                      {% if upload.real_name matches '/\.(jpg|jpeg|png|gif|pdf|eps|svg|heic)$/i' %}
-                      <div class='text-center'>
-                        <a class='text-break' href='app/download.php?f={{ upload.long_name }}'
-                           {% if upload.real_name matches '/(jpg|jpeg|png|gif)$/i' %}
-                               data-fancybox='group'
-                           {% endif %}
-                           {% if upload.comment != 'Click to add a comment' %}
-                               title='{{ upload.comment }}' data-caption='{{ upload.comment }}'
-                           {% endif %}
-                           >
-                        {% endif %}
-                    {% set thumb_name = upload.long_name ~ '_th.jpg' %}
-                    {% if thumb_name is readable and App.Users.userData.uploads_layout %}
-                       <img class='thumb img-thumbnail rounded' class='text-break' src='app/download.php?f={{ upload.long_name }}_th.jpg' alt='thumbnail' />
-                   {% elseif App.Users.userData.uploads_layout %}
-                      <i class='fas {{ Entity.Uploads.getIconFromExtension(ext) }} thumb rounded mx-auto d-block'></i>
-                   {% endif %}
-                     {% if upload.real_name matches '/\.(jpg|jpeg|png|gif|pdf|eps|svg|heic)$/i' %}
-                        </a>
-                      </div>
-                     {% endif %}
+                {% endif %}
+                {% if upload.real_name matches '/\.(jpg|jpeg|png|gif|pdf|eps|svg|heic)$/i' %}
+                    </a>
+                  </div>
+                 {% endif %}
                             {% elseif ext == 'mol' and App.Users.userData.chem_editor %}
                             <div class='text-center'>
-                                <canvas class='molFile' id='molFile_{{ upload.id }}' data-molpath='app/download.php?f={{ upload.long_name }}'></canvas>
+                              <canvas class='molFile' id='molFile_{{ upload.id }}' data-molpath='app/download.php?f={{ upload.long_name }}&storage={{ upload.storage }}'></canvas>
                             </div>
                             {% elseif ext in constant('Elabftw\\Elabftw\\Extensions::MOLECULE') %}
                                 <!--  build control dropdown to change the representation style -->
@@ -124,7 +125,7 @@
                                 </div>
 
                                 <div class='viewer_3Dmoljs file-uploaded'
-                                  data-href='app/download.php?f={{ upload.long_name }}'
+                                  data-href='app/download.php?f={{ upload.long_name }}&storage={{ upload.storage }}'
                                   data-style="{{ ext == 'pdb' ? 'cartoon:color=spectrum' : 'stick'}}"
                                   data-backgroundcolor='0xffffff'
                                   id='3Dmol_{{ upload.id }}'>
@@ -132,20 +133,23 @@
 
             {% elseif ext in constant('Elabftw\\Elabftw\\Extensions::DNA') and App.Users.userData.use_ove %}
               <div class='viewer-ove'
-                data-href='app/download.php?f={{ upload.long_name }}'
+                   data-href='app/download.php?f={{ upload.long_name }}&storage={{ upload.storage }}'
                 data-real-name='{{ upload.real_name }}'
                 id='OVE_{{ upload.id }}'>
               </div>
             {% elseif App.Users.userData.uploads_layout %}
-            <i class='fas {{ Entity.Uploads.getIconFromExtension(ext) }} thumb rounded mx-auto d-block'></i>
+            <i class='fas {{ ext2icon(ext) }} thumb rounded mx-auto d-block'></i>
             {% endif %}
 
         <div class='caption'>
           <i class='fas fa-download mr-1'></i>
           <span>
-              <a id='upload-filename_{{ upload.id }}' class='text-break' href='app/download.php?f={{ upload.long_name }}&name={{ upload.real_name }}&forceDownload' rel='noopener'>{{ upload.real_name }}</a>
+            <a id='upload-filename_{{ upload.id }}' class='text-break' href='app/download.php?f={{ upload.long_name }}&name={{ upload.real_name }}&storage={{ upload.storage }}' rel='noopener'>{{ upload.real_name }}</a>
             <span class='smallgray' style='display:inline'>
-              {{ (Entity.Uploads.getUploadsPath ~ upload.long_name)|filesize|formatBytes }} - {{ upload.datetime }}
+              {% if upload.filesize %}
+                {{ upload.filesize|formatBytes }} -
+              {% endif %}
+              {{ upload.created_at }}
             </span>
           </span>
         <br>
@@ -153,7 +157,7 @@
 
         {% if mode == 'edit' or upload.comment != 'Click to add a comment' %}
           <i class='fas fa-comments'></i>
-          <p class='file-comment editable d-inline'
+          <p class='file-comment editable hl-hover d-inline'
             data-type='{{ upload.type }}'
             data-itemid='{{ upload.item_id }}'
             data-id='{{ upload.id }}'>{{ upload.comment}}</p>
@@ -164,6 +168,11 @@
             <i class='fas fa-{{ mode == 'edit' ? 'pencil-alt' : 'eye' }} mr-1'></i><p data-uploadid='{{ upload.id }}' data-name='{{ upload.real_name }}' data-link='{{ upload.long_name }}' data-action='json-load-file' class='d-inline'>{{ 'Load into JSON Editor'|trans }}</p>
           </div>
         {% endif %}
+
+        <div id='moreInfo_{{ upload.id }}' class='d-none'>
+          <i class='fas fa-info-circle mr-1'></i>{{ 'Storage:'|trans }} {% if upload.storage == '1' %} {{ 'Local filesystem'|trans }} {% endif %} {% if upload.storage == '2' %} S3 bucket {% endif %}<br>
+          {{ upload.hash_algorithm }}: {{ upload.hash }}
+        </div>
 
         </div>
 

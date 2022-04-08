@@ -30,7 +30,7 @@ export default class Comment {
     return this.sender.send(payload);
   }
 
-  update(content: string, id: number): Promise<ResponseMsg> {
+  update(id: number, content: string): Promise<ResponseMsg> {
     const payload: Payload = {
       method: Method.POST,
       action: Action.Update,
@@ -38,6 +38,7 @@ export default class Comment {
       entity: this.entity,
       content: content,
       id : id,
+      notif: true,
     };
     return this.sender.send(payload);
   }

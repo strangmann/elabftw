@@ -51,7 +51,7 @@ class DisplayParams
             $this->setRelated($app);
         }
         // CATEGORY FILTER
-        if ((Check::id((int) $app->Request->query->get('cat')) !== false) || !empty(((array) $app->Request->query->get('tags'))[0])) {
+        if ((Check::id((int) $app->Request->query->get('cat')) !== false) || !empty(((array) $app->Request->query->all('tags'))[0])) {
             $this->searchType = 'something';
         }
     }
@@ -118,7 +118,7 @@ class DisplayParams
 
     private function setRelated(App $app): void
     {
-        $this->related = (int) $app->Request->query->get('related') ?? $this->related;
+        $this->related = (int) ($app->Request->query->get('related') ?? $this->related);
     }
 
     private function setSort(App $app): void

@@ -10,14 +10,16 @@
 namespace Elabftw\Services;
 
 use Elabftw\Elabftw\App;
-use Elabftw\Exceptions\FilesystemErrorException;
+use Elabftw\Elabftw\FsTools;
 use Elabftw\Exceptions\ImproperActionException;
 use Elabftw\Interfaces\TimestampResponseInterface;
+use Elabftw\Models\Config;
 use Elabftw\Traits\ProcessTrait;
 use Elabftw\Traits\UploadTrait;
 use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Exception\RequestException;
 use function is_readable;
+use League\Flysystem\FilesystemOperator;
 use Psr\Http\Message\StreamInterface;
 
 /**
@@ -30,12 +32,23 @@ class TimestampUtils
 
     private array $trash = array();
 
+    private FilesystemOperator $cacheFs;
+
+    // the path to a file with data to be timestamped
+    private string $dataPath;
+
     public function __construct(
         private ClientInterface $client,
-        private string $dataPath,
+        string $data,
         private array $tsConfig,
         private TimestampResponseInterface $tsResponse
     ) {
+        // save the data inside a temporary file so openssl can act on it
+        $pdfPath = FsTools::getCacheFile() . '.pdf';
+        $this->cacheFs = (new StorageFactory(StorageFactory::CACHE))->getStorage()->getFs();
+        $this->cacheFs->write(basename($pdfPath), $data);
+        $this->dataPath = $pdfPath;
+        $this->trash[] = basename($this->dataPath);
     }
 
     /**
@@ -44,8 +57,13 @@ class TimestampUtils
     public function __destruct()
     {
         foreach ($this->trash as $file) {
-            unlink($file);
+            $this->cacheFs->delete($file);
         }
+    }
+
+    public function getDataPath(): string
+    {
+        return $this->dataPath;
     }
 
     /**
@@ -62,17 +80,10 @@ class TimestampUtils
 
     private function saveToken(StreamInterface $binaryToken): void
     {
-        $longName = $this->getLongName() . '.asn1';
-        $filePath = $this->getUploadsPath() . $longName;
-        $dir = dirname($filePath);
-        if (!is_dir($dir) && !mkdir($dir, 0700, true) && !is_dir($dir)) {
-            throw new FilesystemErrorException('Cannot create folder! Check permissions of uploads folder.');
-        }
-        if (!file_put_contents($filePath, $binaryToken)) {
-            throw new FilesystemErrorException('Cannot save token to disk!');
-        }
+        $filePath = FsTools::getCacheFile() . '.asn1';
+        $this->cacheFs->write(basename($filePath), $binaryToken->getContents());
+
         $this->tsResponse->setTokenPath($filePath);
-        $this->tsResponse->setTokenName($longName);
     }
 
     /**
@@ -80,7 +91,7 @@ class TimestampUtils
      */
     private function createRequestfile(): string
     {
-        $requestFilePath = $this->getTmpPath() . $this->getUniqueString();
+        $requestFilePath = FsTools::getCacheFile();
 
         $this->runProcess(array(
             'openssl',
@@ -95,7 +106,7 @@ class TimestampUtils
             $requestFilePath,
         ));
         // remove this file once we are done
-        $this->trash[] = $requestFilePath;
+        $this->trash[] = basename($requestFilePath);
         return $requestFilePath;
     }
 
@@ -113,7 +124,7 @@ class TimestampUtils
                 'Content-Transfer-Encoding' => 'base64',
             ),
             // add proxy if there is one
-            'proxy' => $this->tsConfig['proxy'] ?? '',
+            'proxy' => Config::getConfig()->configArr['proxy'] ?? '',
             // add a timeout, because if you need proxy, but don't have it, it will mess up things
             // in seconds
             'timeout' => 5,

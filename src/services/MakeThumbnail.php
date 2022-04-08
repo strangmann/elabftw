@@ -1,37 +1,27 @@
-<?php
+<?php declare(strict_types=1);
 /**
  * @author Nicolas CARPi <nico-git@deltablot.email>
- * @copyright 2012 Nicolas CARPi
+ * @copyright 2012, 2022 Nicolas CARPi
  * @see https://www.elabftw.net Official website
  * @license AGPL-3.0
  * @package elabftw
  */
-declare(strict_types=1);
 
 namespace Elabftw\Services;
 
+use Elabftw\Elabftw\Extensions;
 use Elabftw\Elabftw\Tools;
-use Elabftw\Exceptions\FilesystemErrorException;
-use Elabftw\Exceptions\ImproperActionException;
-use Exception;
-use function extension_loaded;
-use function file_exists;
-use function filesize;
-use finfo;
-use Gmagick;
+use function exif_read_data;
+use function function_exists;
 use Imagick;
 use function in_array;
-use function is_readable;
-use function substr;
+use function strtolower;
 
 /**
  * Create a thumbnail from a file
  */
 final class MakeThumbnail
 {
-    /** @var int BIG_FILE_THRESHOLD size of a file in bytes above which we don't process it (5 Mb) */
-    private const BIG_FILE_THRESHOLD = 5000000;
-
     /** @var int WIDTH the width for the thumbnail */
     private const WIDTH = 100;
 
@@ -55,24 +45,11 @@ final class MakeThumbnail
         'application/postscript',
     );
 
-    private string $thumbPath;
+    public string $thumbFilename;
 
-    private string $mime;
-
-    public function __construct(private string $filePath, private int $rotationAngle = 0)
+    public function __construct(private string $mime, private string $content, private string $longName)
     {
-        // make sure we can read the file
-        if (is_readable($this->filePath) === false) {
-            throw new FilesystemErrorException('File not found! (' . substr($this->filePath, 0, 42) . '…)');
-        }
-        // get mime type of the file
-        $finfo = new finfo(FILEINFO_MIME_TYPE);
-        $mime = $finfo->file($this->filePath);
-        if ($mime === false) {
-            throw new ImproperActionException('Cannot detect the file type for thumbnail!');
-        }
-        $this->mime = $mime;
-        $this->thumbPath = $this->filePath . '_th.jpg';
+        $this->thumbFilename = $this->longName . '_th.jpg';
     }
 
     /**
@@ -80,54 +57,21 @@ final class MakeThumbnail
      *
      * @param bool $force force regeneration of thumbnail even if file exist (useful if upload was replaced)
      */
-    public function makeThumb($force = false): void
+    public function makeThumb($force = false): ?string
     {
-        // do nothing for big files
-        if (filesize($this->filePath) > self::BIG_FILE_THRESHOLD) {
-            return;
-        }
-
-        // don't bother if the thumbnail exists already
-        if (file_exists($this->thumbPath) && $force === false) {
-            return;
-        }
-
         // verify mime type
         if (!in_array($this->mime, self::ALLOWED_MIMES, true)) {
-            return;
+            return null;
         }
 
-        // if pdf or postscript, generate thumbnail using the first page (index 0) do the same for postscript files
-        // sometimes eps images will be identified as application/postscript as well, but thumbnail generation still
-        // works in those cases
-        if ($this->mime === 'application/pdf' || $this->mime === 'application/postscript') {
-            $this->filePath .= '[0]';
-        }
-
-        // try with imagick first
-        if (extension_loaded('imagick')) {
-            $this->useImagick();
-
-        // try with gmagick
-        // FIXME at the moment there is a bug with only png files on thumbnail generation, so use GD for png
-        } elseif (extension_loaded('gmagick') && Tools::getExt($this->filePath) !== 'png') {
-            $this->useGmagick();
-
-        // if we don't have gmagick, try with gd
-        } elseif (extension_loaded('gd')) {
-            $this->useGd();
-        }
+        return $this->useImagick();
     }
 
-    private function useImagick(): void
+    private function useImagick(): string
     {
-        try {
-            $image = new Imagick();
-            $image->setBackgroundColor('white');
-        } catch (Exception) {
-            return;
-        }
-        $image->readImage($this->filePath);
+        $image = new Imagick();
+        $image->setBackgroundColor('white');
+        $image->readImageBlob($this->content);
         // fix pdf with black background and png
         if ($this->mime === 'application/pdf' || $this->mime === 'application/postscript' || $this->mime === 'image/png') {
             $image->setResolution(300, 300);
@@ -141,70 +85,55 @@ final class MakeThumbnail
         // set the thumbnail quality to 85% (default is 75%)
         $image->setCompressionQuality(85);
         // check if we need to rotate the image based on the orientation in exif of original file
-        if ($this->rotationAngle !== 0) {
-            $image->rotateImage('#000', $this->rotationAngle);
+        $angle = $this->getRotationAngle();
+        if ($angle !== 0) {
+            $image->rotateImage('#000', $angle);
         }
-        // create the physical thumbnail image to its destination
-        $image->writeImage($this->thumbPath);
-        $image->clear();
+        // make sure to set it as jpg (a pdf will stay a pdf otherwise)
+        $image->setImageFormat('jpg');
+        return $image->getImageBlob();
     }
 
-    private function useGmagick(): void
+    private function getRotationAngle(): int
     {
-        // fail silently if thumbnail generation does not work to keep file upload field functional
-        // originally introduced due to issue #415.
-        try {
-            $image = new Gmagick($this->filePath);
-        } catch (Exception) {
-            return;
+        // if the image has exif with rotation data, read it so the thumbnail can have a correct orientation
+        // only the thumbnail is rotated, the original image stays untouched
+        $ext = Tools::getExt($this->longName);
+        if (function_exists('exif_read_data') && in_array(strtolower($ext), Extensions::HAS_EXIF, true)) {
+            // create a stream from the file content so exif_read_data can read it
+            $stream = fopen(sprintf('data://text/plain;base64,%s', base64_encode($this->content)), 'rb');
+            if ($stream === false) {
+                return 0;
+            }
+            $exifData = exif_read_data($stream);
+            if ($exifData !== false) {
+                return $this->readOrientationFromExif($exifData);
+            }
         }
-
-        // create thumbnail of width 100px; height is calculated automatically to keep the aspect ratio
-        $image->thumbnailimage(self::WIDTH, 0);
-        // create the physical thumbnail image to its destination (85% quality)
-        $image->setCompressionQuality(85);
-        $image->write($this->thumbPath);
-        $image->clear();
+        return 0;
     }
 
-    private function useGd(): void
+    /**
+     * Get the rotation angle from exif data
+     *
+     * @param array<string, mixed> $exifData
+     */
+    private function readOrientationFromExif(array $exifData): int
     {
-        // the function used is different depending on extension
-        switch ($this->mime) {
-            case 'image/jpeg':
-                $sourceImage = imagecreatefromjpeg($this->filePath);
-                break;
-            case 'image/png':
-                $sourceImage = imagecreatefrompng($this->filePath);
-                break;
-            case 'image/gif':
-                $sourceImage = imagecreatefromgif($this->filePath);
-                break;
+        if (empty($exifData['Orientation'])) {
+            return 0;
+        }
+        switch ($exifData['Orientation']) {
+            case 1:
+                return 0;
+            case 3:
+                return 180;
+            case 6:
+                return 90;
+            case 8:
+                return -90;
             default:
-                return;
+                return 0;
         }
-
-        // something went wrong
-        if ($sourceImage === false) {
-            return;
-        }
-
-        $width = imagesx($sourceImage);
-        $height = imagesy($sourceImage);
-
-        // find the "desired height" of this thumbnail, relative to the desired width
-        $desiredHeight = (int) floor((float) $height * ((float) self::WIDTH / (float) $width));
-
-        // create a new, "virtual" image
-        $virtualImage = imagecreatetruecolor(self::WIDTH, $desiredHeight);
-        if ($virtualImage === false) {
-            return;
-        }
-
-        // copy source image at a resized size
-        imagecopyresized($virtualImage, $sourceImage, 0, 0, 0, 0, self::WIDTH, $desiredHeight, $width, $height);
-
-        // create the physical thumbnail image to its destination (85% quality)
-        imagejpeg($virtualImage, $this->thumbPath, 85);
     }
 }

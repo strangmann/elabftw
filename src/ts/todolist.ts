@@ -5,8 +5,8 @@
  * @license AGPL-3.0
  * @package elabftw
  */
-import 'jquery-jeditable/src/jquery.jeditable.js';
 import Todolist from './Todolist.class';
+import { Malle } from '@deltablot/malle';
 import i18next from 'i18next';
 import { Model } from './interfaces';
 declare let key: any;
@@ -40,14 +40,6 @@ document.addEventListener('DOMContentLoaded', () => {
     unfinishedStepsScope = 'team';
   }
 
-  // actual lists i.e. to-do list and unfinished item/experiment steps
-  const lists = ['todoItems', 'todoStepsExperiment', 'todoStepsItem'];
-  lists.forEach(list => {
-    if (localStorage.getItem(list + '-isClosed') === '1') {
-      document.getElementById(list).toggleAttribute('hidden');
-    }
-  });
-
   const TodolistC = new Todolist();
   TodolistC.unfinishedStepsScope = unfinishedStepsScope;
 
@@ -72,20 +64,20 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // UPDATE TODOITEM
-  $(document).on('mouseenter', '.todoItem', ev => {
-    ($(ev.currentTarget) as any).editable(input => {
-      TodolistC.update(
-        ev.currentTarget.dataset.todoitemid,
-        input,
-      );
-      return (input);
-    }, {
-      tooltip : i18next.t('click-to-edit'),
-      indicator : 'Saving...',
-      onblur: 'submit',
-      style : 'display:inline',
-    });
-  });
+  const malleableTodoitem = new Malle({
+    inputClasses: ['form-control'],
+    fun: (value, original) => {
+      TodolistC.update(parseInt(original.dataset.todoitemid, 10), value);
+      return value;
+    },
+    listenOn: '.todoItem',
+    tooltip: i18next.t('click-to-edit'),
+  }).listen();
+
+  // add an observer so new comments will get an event handler too
+  new MutationObserver(() => {
+    malleableTodoitem.listen();
+  }).observe(document.getElementById('todoItems'), {childList: true});
 
   // to avoid duplicating code between listeners (keydown and click on add)
   function createTodoitem(): void {
@@ -132,15 +124,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // TOGGLE TODOITEM
     } else if (el.matches('[data-action="toggle-todolist"]')) {
       TodolistC.toggle();
-
-    // TOGGLE SUBLISTS i.e. actual todo-list and unfinished item/experiment steps
-    } else if (el.matches('[data-action="toggle-next"]')) {
-      const sublist = el.nextElementSibling.id + '-isClosed';
-      if (!localStorage.getItem(sublist)) {
-        localStorage.setItem(sublist, '1');
-      } else if (localStorage.getItem(sublist) === '1') {
-        localStorage.removeItem(sublist);
-      }
     }
   });
 });
