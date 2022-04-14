@@ -241,6 +241,7 @@ final class Config
             ('ldap_firstname', 'givenname'),
             ('ldap_team', 'on'),
             ('ldap_use_tls', '0'),
+            ('ldap_use_ssl', '0'),
             ('uploads_storage', '1'),
             ('s3_bucket_name', ''),
             ('s3_path_prefix', ''),

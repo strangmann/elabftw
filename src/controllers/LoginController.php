@@ -219,6 +219,7 @@ class LoginController implements ControllerInterface
                     'username' => $c['ldap_username'],
                     'password' => $ldapPassword,
                     'use_tls' => (bool) $c['ldap_use_tls'],
+                    'use_ssl' => (bool) $c['ldap_use_ssl'],
                 );
                 $connection = new Connection($ldapConfig);
                 return new LdapAuth($connection, $c, (string) $this->App->Request->request->get('email'), (string) $this->App->Request->request->get('password'));

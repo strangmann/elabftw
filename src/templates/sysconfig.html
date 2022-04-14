@@ -809,7 +809,21 @@ MySQL database structure version: {{ App.Config.configArr.schema }}</p>
 
         <label for='ldap_port'>{{ 'LDAP Port'|trans }}</label>
         <input class='form-control col-md-4' type='text' placeholder='389' value='{{ App.Config.configArr.ldap_port }}' name='ldap_port' id='ldap_port' />
-        <p class='smallgray'>{{ 'Default: 389 LDAPS: 636'|trans }}</p>
+        <p class='smallgray'>{{ 'Use 389 for cleartext or TLS, 636 for SSL'}}</p>
+
+        <label for='ldap_use_ssl'>{{ 'Use SSL'}}</label>
+        <select class='form-control col-md-4' id='ldap_use_ssl' name='ldap_use_ssl'>
+          <option value='1'{{ App.Config.configArr.ldap_use_ssl == '1' ? ' selected' }}>{{ 'Yes'|trans }}</option>
+          <option value='0'{{ App.Config.configArr.ldap_use_ssl == '0' ? ' selected' }}>{{ 'No'|trans }}</option>
+        </select>
+        <p class='smallgray'>{{ 'If this is enabled, TLS must be disabled.'}}</p>
+
+        <label for='ldap_use_tls'>{{ 'Use TLS'}}</label>
+        <select class='form-control col-md-4' id='ldap_use_tls' name='ldap_use_tls'>
+          <option value='1'{{ App.Config.configArr.ldap_use_tls == '1' ? ' selected' }}>{{ 'Yes'|trans }}</option>
+          <option value='0'{{ App.Config.configArr.ldap_use_tls == '0' ? ' selected' }}>{{ 'No'|trans }}</option>
+        </select>
+        <p class='smallgray'>{{ 'If this is enabled, SSL must be disabled.'}}</p>
 
         <label for='ldap_base_dn'>LDAP Base DN</label>
         <input class='form-control col-md-4' type='text' placeholder='dc=example,dc=com' value='{{ App.Config.configArr.ldap_base_dn }}' name='ldap_base_dn' id='ldap_base_dn' />
@@ -831,12 +845,6 @@ MySQL database structure version: {{ App.Config.configArr.schema }}</p>
             <input class='form-control col-md-4' type='password' name='ldap_password' hidden autocomplete='off' id='hidden_ldap_password' />
           </p>
         {% endif %}
-
-        <label for='ldap_use_tls'>{{ 'Use TLS'|trans }}</label>
-        <select class='form-control col-md-4' id='ldap_use_tls' name='ldap_use_tls'>
-          <option value='1'{{ App.Config.configArr.ldap_use_tls == '1' ? ' selected' }}>{{ 'Yes'|trans }}</option>
-          <option value='0'{{ App.Config.configArr.ldap_use_tls == '0' ? ' selected' }}>{{ 'No'|trans }}</option>
-        </select>
 
         <label for='ldap-team'>What attribute to look for the team name:</label>
         <input class='form-control col-md-4' type='text' id='ldap-team' name='ldap_team' value='{{ App.Config.configArr.ldap_team }}' />
