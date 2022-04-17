@@ -56,6 +56,8 @@ document.addEventListener('DOMContentLoaded', () => {
     },
   });
 
+  const AjaxC = new Ajax();
+
   // set the language for js translated strings
   i18next.changeLanguage(document.getElementById('user-prefs').dataset.lang);
 
@@ -139,7 +141,7 @@ document.addEventListener('DOMContentLoaded', () => {
           content: value,
           notif: true,
         };
-        (new Ajax()).send(payload)
+        AjaxC.send(payload)
           .then(json => notif(json))
           .then(() => {
             if (el.dataset.reload) {
@@ -207,7 +209,6 @@ document.addEventListener('DOMContentLoaded', () => {
         action: Action.Read,
         model: Model.PrivacyPolicy,
       };
-      const AjaxC = new Ajax();
       AjaxC.send(payload).then(json => {
         let policy = json.value as string;
         if (!policy) {
@@ -228,16 +229,20 @@ document.addEventListener('DOMContentLoaded', () => {
     /* TOGGLE NEXT ACTION
      * An element with "toggle-next" as data-action value will appear clickable.
      * Clicking on it will toggle the "hidden" attribute of the next sibling element.
-     * If there is a data-icon value, it is split on '-' and the first part is the type of icon
-     * and second part is the id of the icon so the css classes can be toggled
+     * If there is a data-icon value, it is toggled > or V
      */
     } else if (el.matches('[data-action="toggle-next"]')) {
       const targetEl = el.nextElementSibling as HTMLElement;
       targetEl.toggleAttribute('hidden');
       if (el.dataset.icon) {
         const iconEl = document.getElementById(el.dataset.icon);
-        iconEl.classList.toggle('fa-chevron-circle-right');
-        iconEl.classList.toggle('fa-chevron-circle-down');
+        if (targetEl.hasAttribute('hidden')) {
+          iconEl.classList.remove('fa-chevron-circle-down');
+          iconEl.classList.add('fa-chevron-circle-right');
+        } else {
+          iconEl.classList.add('fa-chevron-circle-down');
+          iconEl.classList.remove('fa-chevron-circle-right');
+        }
       }
       // save the hidden state of the target element in localStorage
       if (targetEl.dataset.saveHidden) {
@@ -295,12 +300,19 @@ document.addEventListener('DOMContentLoaded', () => {
         target: Target.Finished,
         id: parseInt(el.dataset.id, 10),
       };
-      const AjaxC = new Ajax();
-      AjaxC.send(payload).then(() => {
+      if (el.parentElement.dataset.ack === '0') {
+        AjaxC.send(payload).then(() => {
+          if (el.dataset.href) {
+            window.location.href = el.dataset.href;
+          } else {
+            reloadElement('navbarNotifDiv');
+          }
+        });
+      } else {
         if (el.dataset.href) {
           window.location.href = el.dataset.href;
         }
-      });
+      }
 
     // DESTROY (clear all) NOTIF
     } else if (el.matches('[data-action="destroy-notif"]')) {
@@ -309,7 +321,6 @@ document.addEventListener('DOMContentLoaded', () => {
         action: Action.Destroy,
         model: Model.Notification,
       };
-      const AjaxC = new Ajax();
       AjaxC.send(payload).then(() => {
         document.querySelectorAll('.notification').forEach(el => el.remove());
       });

@@ -9,7 +9,7 @@ import $ from 'jquery';
 import { Action, Malle } from '@deltablot/malle';
 import '@fancyapps/fancybox/dist/jquery.fancybox.js';
 import { Target } from './interfaces';
-import { notif, displayMolFiles, display3DMolecules, getEntity } from './misc';
+import { notif, displayMolFiles, display3DMolecules, getEntity, reloadElement } from './misc';
 import { displayPlasmidViewer } from './ove';
 import i18next from 'i18next';
 import Upload from './Upload.class';
@@ -41,7 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
     },
     inputClasses: ['form-control'],
     listenOn: '.file-comment.editable',
-    onBlur: Action.Ignore,
+    onBlur: Action.Submit,
     onEdit: (original, event, input) => {
       // remove the default text
       if (input.value === 'Click to add a comment') {
@@ -53,27 +53,20 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   malleableFilecomment.listen();
 
-  // add an observer so new comments will get an event handler too
-  new MutationObserver(() => {
-    malleableFilecomment.listen();
-  }).observe(document.getElementById('filesdiv'), {childList: true});
-
   // Export mol in png
   $(document).on('click', '.saveAsImage', function() {
     const molCanvasId = $(this).data('canvasid');
     const png = (document.getElementById(molCanvasId) as HTMLCanvasElement).toDataURL();
     $.post('app/controllers/EntityAjaxController.php', {
       saveAsImage: true,
-      realName: $(this).data('name'),
+      realName: $(this).data('name') + '.png',
       content: png,
       id: about.id,
       type: about.type,
     }).done(function(json) {
       notif(json);
       if (json.res) {
-        $('#filesdiv').load('?mode=edit&id=' + $('#info').data('id') + ' #filesdiv > *', function() {
-          displayMolFiles();
-        });
+        reloadElement('filesdiv');
       }
     });
   });
@@ -123,7 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (confirm(i18next.t('generic-delete-warning'))) {
         UploadC.destroy(uploadId).then(json => {
           if (json.res) {
-            $('#filesdiv').load('?mode=edit&id=' + entity.id + ' #filesdiv > *');
+            reloadElement('filesdiv');
           }
         });
       }
@@ -134,12 +127,11 @@ document.addEventListener('DOMContentLoaded', () => {
   $('[data-fancybox]').fancybox();
 
   // Create an observer instance linked to the callback function(mutationList, observer)
-  const filesDivObserver = new MutationObserver(() => {
+  // Start observing the target node for configured mutations
+  new MutationObserver(() => {
     displayMolFiles();
     display3DMolecules(true);
     displayPlasmidViewer(about);
-  });
-
-  // Start observing the target node for configured mutations
-  filesDivObserver.observe(document.getElementById('filesdiv'), {childList: true});
+    malleableFilecomment.listen();
+  }).observe(document.getElementById('filesdiv'), {childList: true});
 });

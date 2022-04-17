@@ -23,6 +23,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // STEPS
   const StepC = new Step(entity);
+
+  // LINKS
+  const LinkC = new Link(entity);
+
   relativeMoment();
 
   // MAIN LISTENER for actions
@@ -45,6 +49,14 @@ document.addEventListener('DOMContentLoaded', () => {
       StepC.update(parseInt(el.dataset.stepid, 10), null, Target.Deadline).then(() => {
         reloadElement('stepsDiv');
       });
+    // IMPORT LINK(S) OF LINK
+    } else if (el.matches('[data-action="import-links"]')) {
+      LinkC.importLinks(parseInt(el.dataset.target, 10)).then(() => reloadElement('linksDiv'));
+    // DESTROY LINK
+    } else if (el.matches('[data-action="destroy-link"]')) {
+      if (confirm(i18next.t('link-delete-warning'))) {
+        LinkC.destroy(parseInt(el.dataset.target, 10)).then(() => reloadElement('linksDiv'));
+      }
     }
   });
 
@@ -92,7 +104,7 @@ document.addEventListener('DOMContentLoaded', () => {
       adjustHiddenState();
       makeSortableGreatAgain();
       relativeMoment();
-    }).observe(document.getElementById('stepsDiv'), {childList: true});
+    }).observe(document.getElementById('stepsDiv'), {childList: true, subtree: true});
   }
 
   // FINISH
@@ -118,12 +130,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const StepNew = new Step(newentity);
     StepNew.finish(stepId).then(() => {
       // only reload children
-      const loadUrl = window.location.href + ' #steps_div_' + entity.id + ' > *';
-      // reload the step list
-      $('#steps_div_' + entity.id).load(loadUrl, function() {
-        relativeMoment();
-        reloadElement('stepsDiv');
-        makeSortableGreatAgain();
+      reloadElement('steps_div_' + entity.id).then(() => {
+        // keep to do list in sync
         $('#todo_step_' + stepId).prop('checked', $('.stepbox[data-stepid="' + stepId + '"]').prop('checked'));
       });
     });
@@ -135,11 +143,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const stepId = e.currentTarget.dataset.stepid;
       StepC.destroy(stepId).then(() => {
         // only reload children
-        const loadUrl = window.location + ' #steps_div_' + entity.id + ' > *';
-        // reload the step list
-        $('#steps_div_' + entity.id).load(loadUrl, function() {
-          relativeMoment();
-          makeSortableGreatAgain();
+        reloadElement('steps_div_' + entity.id).then(() => {
+          // keep to do list in sync
           $('#todo_step_' + stepId).parent().hide();
         });
       });
@@ -147,9 +152,6 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // END STEPS
-
-  // LINKS
-  const LinkC = new Link(entity);
 
   // CREATE
   // listen keypress, add link when it's enter or on blur
@@ -164,9 +166,10 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       LinkC.create(target).then(() => {
         // only reload children of links_div_id
-        $('#links_div_' + entity.id).load(window.location.href + ' #links_div_' + entity.id + ' > *');
-        // clear input field
-        (document.querySelector('.linkinput') as HTMLInputElement).value = '';
+        reloadElement('links_div_' + entity.id).then(() => {
+          // clear input field
+          (document.getElementById('linkinput') as HTMLInputElement).value = '';
+        });
       });
       $(this).val('');
     }
@@ -203,14 +206,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // AUTOCOMPLETE
   addAutocompleteToLinkInputs();
-
-  // DESTROY
-  $(document).on('click', '.linkDestroy', function() {
-    if (confirm(i18next.t('link-delete-warning'))) {
-      LinkC.destroy($(this).data('linkid')).then(() => {
-        // only reload children of links_div_id
-        $('#links_div_' + entity.id).load(window.location.href + ' #links_div_' + entity.id + ' > *');
-      });
-    }
-  });
 });
