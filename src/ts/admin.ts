@@ -80,7 +80,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const content = $('#teamGroupCreate').val() as string;
     TeamGroupC.create(content).then(json => {
       if (json.res) {
-        // only reload children
         reloadElement('team_groups_div');
         (document.getElementById('teamGroupCreate') as HTMLInputElement).value = '';
       }
@@ -89,7 +88,6 @@ document.addEventListener('DOMContentLoaded', () => {
   $('#team_groups_div').on('click', '.teamGroupDelete', function() {
     if (confirm(i18next.t('generic-delete-warning'))) {
       TeamGroupC.destroy($(this).data('id')).then(() => {
-        // only reload children
         reloadElement('team_groups_div');
       });
     }
@@ -100,17 +98,17 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.which === 13 || e.type === 'focusout') {
       const user = parseInt($(this).val() as string, 10);
       const group = $(this).data('group');
-      TeamGroupC.update(user, group, 'add').then(() => {
-        // only reload children
-        reloadElement('team_groups_div');
-      });
+      if (e.target.value !== e.target.defaultValue) {
+        TeamGroupC.update(user, group, 'add').then(() => {
+          reloadElement('team_groups_div');
+        });
+      }
     }
   });
   $('#team_groups_div').on('click', '.rmUserFromGroup', function() {
     const user = $(this).data('user');
     const group = $(this).data('group');
     TeamGroupC.update(user, group, 'rm').then(() => {
-      // only reload children
       reloadElement('team_groups_div');
     });
   });
@@ -228,22 +226,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('container').addEventListener('click', event => {
     const el = (event.target as HTMLElement);
-    if (el.matches('[data-action="override-timestamp"]')) {
-      document.getElementById('overrideTimestampContent').toggleAttribute('hidden');
-      const value = (document.getElementById('overrideTimestamp') as HTMLInputElement).checked;
-      const payload: Payload = {
-        method: Method.POST,
-        action: Action.Update,
-        model: Model.Team,
-        target: Target.TsOverride,
-        content: value ? '1' : '0',
-        notif: true,
-      };
-      AjaxC.send(payload).then(json => {
-        notif(json);
-      });
     // CREATE ITEMS TYPES
-    } else if (el.matches('[data-action="itemstypes-create"]')) {
+    if (el.matches('[data-action="itemstypes-create"]')) {
       const title = prompt(i18next.t('template-title'));
       if (title) {
         // no body on template creation
