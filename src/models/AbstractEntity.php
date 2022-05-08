@@ -42,11 +42,11 @@ abstract class AbstractEntity implements CrudInterface
 {
     use EntityTrait;
 
-    protected const STATE_NORMAL = 1;
+    public const STATE_NORMAL = 1;
 
-    protected const STATE_ARCHIVED = 2;
+    public const STATE_ARCHIVED = 2;
 
-    protected const STATE_DELETED = 3;
+    public const STATE_DELETED = 3;
 
     public Comments $Comments;
 
@@ -86,7 +86,7 @@ abstract class AbstractEntity implements CrudInterface
     private string $extendedFilter = '';
 
     // inserted in sql
-    private array $bindExtendedValues = array();
+    private array $extendedValues = array();
 
     // start metadata stuff
     private bool $isMetadataSearch = false;
@@ -646,16 +646,14 @@ abstract class AbstractEntity implements CrudInterface
         return array_column($req->fetchAll(), 'id');
     }
 
-    public function addToExtendedFilter(string $extendedFilter, array $bindExtendedValues = array()): void
+    public function addToExtendedFilter(string $extendedFilter, array $extendedValues = array()): void
     {
         $this->extendedFilter .= $extendedFilter . ' ';
-        $this->bindExtendedValues = array_merge($this->bindExtendedValues, $bindExtendedValues);
+        $this->extendedValues = array_merge($this->extendedValues, $extendedValues);
     }
 
     public function destroy(): bool
     {
-        $this->canOrExplode('write');
-
         // set state to deleted
         return $this->update(new EntityParams((string) self::STATE_DELETED, 'state'));
     }
@@ -751,10 +749,19 @@ abstract class AbstractEntity implements CrudInterface
             $tagsSelect = ", GROUP_CONCAT(DISTINCT tags.tag ORDER BY tags.id SEPARATOR '|') as tags, GROUP_CONCAT(DISTINCT tags.id) as tags_id";
             $tagsJoin = 'LEFT JOIN tags2entity ON (entity.id = tags2entity.item_id AND tags2entity.item_type = \'%1$s\') LEFT JOIN tags ON (tags2entity.tag_id = tags.id)';
         }
+
+        // only include columns if actually searching for comments/filenames
+        $searchAttachments = '';
+        if (!empty(array_column($this->extendedValues, 'searchAttachments'))) {
+            $searchAttachments = ',
+                GROUP_CONCAT(uploads.comment) AS comments,
+                GROUP_CONCAT(uploads.real_name) AS real_names';
+        }
+
         $uploadsJoin = 'LEFT JOIN (
             SELECT uploads.item_id AS up_item_id,
                 (uploads.item_id IS NOT NULL) AS has_attachment,
-                uploads.type
+                uploads.type' . $searchAttachments . '
             FROM uploads
             GROUP BY uploads.item_id, uploads.type)
             AS uploads
@@ -826,7 +833,7 @@ abstract class AbstractEntity implements CrudInterface
 
     private function bindExtendedValues(PDOStatement $req): void
     {
-        foreach ($this->bindExtendedValues as $bindValue) {
+        foreach ($this->extendedValues as $bindValue) {
             $req->bindValue($bindValue['param'], $bindValue['value'], $bindValue['type']);
         }
     }

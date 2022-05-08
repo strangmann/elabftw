@@ -140,8 +140,9 @@ class Users
         $userid = $this->Db->lastInsertId();
 
         // now add the user to the team
-        $Teams->addUserToTeams($userid, array_column($teams, 'id'));
-        if ($alertAdmin) {
+        $Users2Teams = new Users2Teams();
+        $Users2Teams->addUserToTeams($userid, array_column($teams, 'id'));
+        if ($alertAdmin && !$TeamsHelper->isFirstUserInTeam()) {
             $this->notifyAdmins($TeamsHelper->getAllAdminsUserid(), $userid, $validated);
         }
         if ($validated === 0) {
@@ -161,7 +162,7 @@ class Users
         $usersArr = $this->readFromQuery($params->getContent());
         $res = array();
         foreach ($usersArr as $user) {
-            $res[] = $user['userid'] . ' - ' . $user['fullname'];
+            $res[] = $user['userid'] . ' - ' . $user['fullname'] . ' - ' . $user['email'];
         }
         return $res;
     }
@@ -283,14 +284,26 @@ class Users
     }
 
     /**
+     * Update the user's email
+     * Note: should only be done if auth method is local!
+     */
+    public function updateEmail(string $email): bool
+    {
+        $this->checkEmail($email);
+        $sql = 'UPDATE users SET email = :email WHERE userid = :userid';
+        $req = $this->Db->prepare($sql);
+        $req->bindParam(':email', $email, PDO::PARAM_STR);
+        $req->bindParam(':userid', $this->userData['userid'], PDO::PARAM_INT);
+        return $this->Db->execute($req);
+    }
+
+    /**
      * Update things from UCP
      *
      * @param array<string, mixed> $params
      */
     public function updateAccount(array $params): bool
     {
-        $this->checkEmail($params['email']);
-
         $params['firstname'] = Filter::sanitize($params['firstname']);
         $params['lastname'] = Filter::sanitize($params['lastname']);
 
@@ -305,7 +318,6 @@ class Users
         $params['website'] = filter_var($params['website'], FILTER_VALIDATE_URL);
 
         $sql = 'UPDATE users SET
-            email = :email,
             firstname = :firstname,
             lastname = :lastname,
             phone = :phone,
@@ -315,7 +327,6 @@ class Users
             WHERE userid = :userid';
         $req = $this->Db->prepare($sql);
 
-        $req->bindParam(':email', $params['email']);
         $req->bindParam(':firstname', $params['firstname']);
         $req->bindParam(':lastname', $params['lastname']);
         $req->bindParam(':phone', $params['phone']);

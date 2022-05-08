@@ -39,7 +39,7 @@ class UsersTest extends \PHPUnit\Framework\TestCase
     public function testRead(): void
     {
         $res = $this->Users->read(new ContentParams('php'));
-        $this->assertEquals('1 - Phpunit TestUser', $res[0]);
+        $this->assertEquals('1 - Phpunit TestUser - phpunit@example.com', $res[0]);
     }
 
     public function testReadAllFromTeam(): void
@@ -99,7 +99,6 @@ class UsersTest extends \PHPUnit\Framework\TestCase
             'sc_todo' => 't',
             'show_team' => 'on',
             'chem_editor' => 'on',
-            'json_editor' => 'on',
             'lang' => 'en_GB',
             'pdf_format' => 'A4',
             'default_vis' => 'organization',

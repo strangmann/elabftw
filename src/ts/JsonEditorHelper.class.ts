@@ -10,6 +10,7 @@ import JSONEditor from 'jsoneditor';
 import i18next from 'i18next';
 import { notif, reloadElement } from './misc';
 import { Entity } from './interfaces';
+import { Ajax } from './Ajax.class';
 
 // This class is named helper because the jsoneditor lib already exports JSONEditor
 export default class JsonEditorHelper {
@@ -56,17 +57,15 @@ export default class JsonEditorHelper {
   }
 
   focus(): void {
-    // show the editor (use jQuery selector here for collapse())
-    ($('#jsonEditorDiv') as JQuery<HTMLDivElement>).collapse('show');
-    // toggle the +/- button
-    const plusMinusButton = document.querySelector('.jsonEditorPlusMinusButton') as HTMLButtonElement;
-    if (plusMinusButton.innerText === '+') {
-      plusMinusButton.innerText = '-';
-      plusMinusButton.classList.add('btn-neutral');
-      plusMinusButton.classList.remove('btn-primary');
-    }
+    // toggle the arrow icon
+    const iconEl = document.getElementById('jsonEditorIcon');
+    iconEl.classList.add('fa-chevron-circle-down');
+    iconEl.classList.remove('fa-chevron-circle-right');
+    const jsonEditorDiv = document.getElementById('jsonEditorDiv');
+    // make sure it's not hidden
+    jsonEditorDiv.toggleAttribute('hidden', false);
     // and scroll page into editor view
-    document.getElementById('jsonEditorContainer').scrollIntoView();
+    jsonEditorDiv.scrollIntoView();
   }
 
   loadFile(link: string, name: string, uploadid: string): void {
@@ -94,6 +93,12 @@ export default class JsonEditorHelper {
     this.editorTitle.innerText = `${i18next.t('filename')}: ${name}`;
     this.currentUploadId = uploadid;
     this.editorDiv.dataset.what = 'file';
+  }
+
+  loadMetadataAfterButtonClick(): void {
+    // disable the load metadata button
+    document.getElementById('jsonEditorMetadataLoadButton').toggleAttribute('disabled', true);
+    this.loadMetadata();
   }
 
   loadMetadata(): void {
@@ -172,27 +177,17 @@ export default class JsonEditorHelper {
 
   // edit an existing file
   saveFile(): void {
-    const formData = new FormData();
-    const blob = new Blob([JSON.stringify(this.editor.get())], { type: 'application/json' });
-    formData.append('action', 'update');
-    formData.append('target', 'file');
-    formData.append('entity_id', this.entity.id.toString());
-    formData.append('entity_type', this.entity.type);
-    formData.append('id', this.currentUploadId);
-    formData.append('model', 'upload');
-    formData.append('csrf', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
-    formData.append('content', blob);
-    formData.append('extraParam', 'jsoneditor');
-
-    $.post({
-      url: 'app/controllers/RequestHandler.php',
-      data: formData,
-      processData: false,
-      contentType: false,
-      success: (json) => {
-        notif(json);
-      },
-    });
+    const AjaxC = new Ajax();
+    AjaxC.postForm('app/controllers/RequestHandler.php', {
+      action: 'update',
+      target: 'file',
+      entity_id: this.entity.id.toString(),
+      entity_type: this.entity.type,
+      id: this.currentUploadId,
+      model: 'upload',
+      extraParam: 'jsoneditor',
+      content: new Blob([JSON.stringify(this.editor.get())], { type: 'application/json' }),
+    }).then(res => res.json().then(json => notif(json)));
   }
 
   clear(): void {

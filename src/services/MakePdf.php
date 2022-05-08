@@ -14,6 +14,7 @@ use DateTime;
 use function dirname;
 use Elabftw\Elabftw\ContentParams;
 use Elabftw\Elabftw\CreateNotificationParams;
+use Elabftw\Elabftw\FsTools;
 use Elabftw\Elabftw\Tools;
 use Elabftw\Interfaces\FileMakerInterface;
 use Elabftw\Interfaces\MpdfProviderInterface;
@@ -26,6 +27,7 @@ use Elabftw\Traits\PdfTrait;
 use Elabftw\Traits\TwigTrait;
 use Elabftw\Traits\UploadTrait;
 use function implode;
+use League\Flysystem\Filesystem;
 use Mpdf\Mpdf;
 use setasign\Fpdi\FpdiException;
 use const SITE_URL;
@@ -46,9 +48,14 @@ class MakePdf extends AbstractMake implements FileMakerInterface
 
     public array $failedAppendPdfs = array();
 
+    // collect paths of files to delete
+    public array $trash = array();
+
     // switch to disable notifications from within class
     // if notifications are handled by calling class
     public bool $createNotifications = true;
+
+    private FileSystem $cacheFs;
 
     /**
      * Constructor
@@ -69,6 +76,16 @@ class MakePdf extends AbstractMake implements FileMakerInterface
         // see https://github.com/baselbers/mpdf/commit
         // 5cbaff4303604247f698afc6b13a51987a58f5bc#commitcomment-23217652
         error_reporting(E_ERROR);
+
+        $this->cacheFs = (new StorageFactory(StorageFactory::CACHE))->getStorage()->getFs();
+    }
+
+    public function __destruct()
+    {
+        // delete the temporary files once we're done with it
+        foreach ($this->trash as $filename) {
+            $this->cacheFs->delete($filename);
+        }
     }
 
     /**
@@ -129,10 +146,16 @@ class MakePdf extends AbstractMake implements FileMakerInterface
         }
 
         foreach ($uploadsArr as $upload) {
-            // TODO make it work with S3 storage
-            $filePath = dirname(__DIR__, 2) . '/uploads/' . $upload['long_name'];
-            if (file_exists($filePath) && strtolower(Tools::getExt($upload['real_name'])) === 'pdf') {
-                $listOfPdfs[] = array($filePath, $upload['real_name']);
+            $storageFs = (new StorageFactory((int) $upload['storage']))->getStorage()->getFs();
+            if ($storageFs->fileExists($upload['long_name']) && strtolower(Tools::getExt($upload['real_name'])) === 'pdf') {
+                // the real_name is used in case of error appending it
+                // the content is stored in a temporary file so it can be read with appendPdfs()
+                $tmpPath = FsTools::getCacheFile();
+                $filename = basename($tmpPath);
+                $this->cacheFs->writeStream($filename, $storageFs->readStream($upload['long_name']));
+                $listOfPdfs[] = array($tmpPath, $upload['real_name']);
+                // add the temporary file to the trash
+                $this->trash[] = $filename;
             }
         }
 
@@ -215,6 +238,17 @@ class MakePdf extends AbstractMake implements FileMakerInterface
             $lockDate = $ldate[0] . ' at ' . $ldate[1];
         }
 
+        // read the content of the thumbnail here to feed the template
+        $uploadsArr =  $this->Entity->Uploads->readAllNormal();
+        foreach ($uploadsArr as $key => $upload) {
+            $storageFs = (new StorageFactory((int) $upload['storage']))->getStorage()->getFs();
+            $thumbnail = $upload['long_name'] . '_th.jpg';
+            // no need to filter on extension, just insert the thumbnail if it exists
+            if ($storageFs->fileExists($thumbnail)) {
+                $uploadsArr[$key]['base64_thumbnail'] = base64_encode($storageFs->read($thumbnail));
+            }
+        }
+
         $renderArr = array(
             'body' => $this->getBody(),
             'commentsArr' => $this->Entity->Comments->read(new ContentParams()),
@@ -232,8 +266,7 @@ class MakePdf extends AbstractMake implements FileMakerInterface
             'stepsArr' => $this->Entity->Steps->read(new ContentParams()),
             'tags' => $this->Entity->entityData['tags'],
             'title' => $this->Entity->entityData['title'],
-            'uploadsArr' => $this->Entity->Uploads->readAll(),
-            'uploadsFolder' => dirname(__DIR__, 2) . '/uploads/',
+            'uploadsArr' => $uploadsArr,
             'url' => $this->getURL(),
             'linkBaseUrl' => SITE_URL . '/database.php',
             'useCjk' => $this->Entity->Users->userData['cjk_fonts'],
