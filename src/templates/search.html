@@ -267,7 +267,7 @@
           <li><strong>title</strong>: Simple or Quoted term</li>
           <li><strong>visibility</strong>: Simple or Quoted term</li>
         </ul>
-        <a class='clickable' data-action='toggle-modal' data-target='advancedSearchModal'>{{ 'Full syntax'|trans }}</a>
+        <a data-action='toggle-modal' data-target='advancedSearchModal'>{{ 'Full syntax'|trans }}</a>
       </div>
     </div>
 
@@ -279,12 +279,16 @@
           <label for='searchonly'>{{ 'And author is'|trans }}/{{ 'belongs to group:'|trans }}</label><br>
           <select id='searchonly' name='owner' data-filter='(?:author|group)' class='form-control selectpicker filterHelper' data-show-subtext='true' data-live-search='true'>
             <option data-action='clear'>{{ 'Select author'|trans }}/{{ 'group'|trans }}</option>
-            {% for user in usersArr %}
-              <option value='author:{{ user.fullname|raw }}' {{- Request.query.get('owner') == 'author:'~user.fullname|raw ? ' selected' }}>[{{ 'author'|trans }}] {{ user.fullname|raw }}</option>
-            {% endfor %}
-            {% for group in teamGroups %}
-              <option value='group:{{ group|raw }}' {{- Request.query.get('owner') == 'group:'~group|raw ? ' selected' }}>[{{ 'group'|trans }}] {{ group|raw }}</option>
-            {% endfor %}
+            <optgroup label='{{ 'Users'|trans }}'>
+              {% for user in usersArr %}
+                <option value='author:{{ user.fullname|raw }}' {{- Request.query.get('owner') == 'author:'~user.fullname|raw ? ' selected' }}>[{{ 'author'|trans }}] {{ user.fullname|raw }}</option>
+              {% endfor %}
+            </optgroup>
+            <optgroup label='{{ 'Groups'|trans }}'>
+              {% for group in teamGroups %}
+                <option value='group:{{ group|raw }}' {{- Request.query.get('owner') == 'group:'~group|raw ? ' selected' }}>[{{ 'group'|trans }}] {{ group|raw }}</option>
+              {% endfor %}
+            </optgroup>
           </select>
         </div>
         <!-- END AUTHOR/OWNER HELPER -->
@@ -385,8 +389,8 @@
           <label for='visibility'>{{ 'And visibility is:'|trans }} </label><br>
           <select id='visibility' name='vis' data-filter='visibility' class='form-control filterHelper'>
             <option value='' data-action='clear'>{{ 'Select visibility'|trans }}</option>
-            {% for key, value in visibilityArr %}
-              <option value='{{ key }}' {{- Request.query.get('vis') == key ? ' selected' }}>{{ value|trans }}</option>
+            {% for value in visibilityArr %}
+              <option {{- Request.query.get('vis') == value ? ' selected' }}>{{ value|trans }}</option>
             {% endfor %}
           </select>
         </div>
@@ -394,7 +398,7 @@
       </div>
       <div class='row'>
         <div class='col'>
-          <small class="form-text text-muted">
+          <small class='form-text text-muted'>
             Tip: Add a field/value pair to the query at the cursor position by pressing <kbd>ctrl</kbd> or <kbd>⌘</kbd> while selecting.
           </small>
         </div>

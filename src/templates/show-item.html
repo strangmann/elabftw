@@ -37,7 +37,7 @@
               <input autocomplete='off' type='checkbox' data-action='checkbox-entity' data-id='{{ item.id }}' data-randomid='{{ randomId }}' data-type='{{ Entity.type }}' aria-label='Select' style='width:15px;vertical-align:0.5px;' />
               <!-- edit icon -->
               {% if not item.locked and (item.userid == App.Users.userData.userid or Entity.type == 'items' or App.Session.get('is_admin')) %}
-                <a href='{{ Entity.page }}.php?mode=edit&id={{ item.id }}' class='clickable' title='{{ 'Edit'|trans }}'><i class='fas fa-pencil-alt link-like'></i></a>
+                <a href='{{ Entity.page }}.php?mode=edit&id={{ item.id }}' title='{{ 'Edit'|trans }}'><i class='fas fa-pencil-alt link-like'></i></a>
               {% endif %}
               <!-- toggle body -->
               <span data-type='{{ Entity.type }}' data-id='{{ item.id }}' data-randid={{ randomId }} data-action='toggle-body' title='{{ 'Toggle content'|trans }}'>
@@ -70,7 +70,7 @@
               {% if itemtagsArr|length > 0 %}
                 <span class='tags'><i class='fas fa-tags mr-1'></i>
                   {% for tag in itemtagsArr %}
-                    <a class='tag' href='{{ Entity.page }}.php?mode=show&tags%5B%5D={{ tag.tag|url_encode }}'>{{ tag.tag|raw }}</a>
+                    <a class='tag mathjax-ignore' href='{{ Entity.page }}.php?mode=show&tags%5B%5D={{ tag.tag|url_encode }}'>{{ tag.tag|raw }}</a>
                   {% endfor %}
                 </span>
               {% endif %}

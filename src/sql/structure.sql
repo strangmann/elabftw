@@ -520,7 +520,6 @@ CREATE TABLE `status` (
   `team` int(10) UNSIGNED NOT NULL,
   `name` text NOT NULL,
   `color` varchar(6) NOT NULL,
-  `is_timestampable` tinyint(1) UNSIGNED NOT NULL DEFAULT '1',
   `is_default` tinyint(1) UNSIGNED DEFAULT NULL,
   `ordering` int(10) UNSIGNED DEFAULT NULL,
   PRIMARY KEY (`id`)
@@ -738,7 +737,6 @@ CREATE TABLE `users` (
   `orderby` varchar(255) NOT NULL DEFAULT 'date',
   `sort` varchar(255) NOT NULL DEFAULT 'desc',
   `use_markdown` tinyint(1) UNSIGNED NOT NULL DEFAULT '0',
-  `use_ove` tinyint(1) UNSIGNED NOT NULL DEFAULT '1',
   `inc_files_pdf` tinyint(1) UNSIGNED NOT NULL DEFAULT '1',
   `append_pdfs` tinyint(1) UNSIGNED NOT NULL DEFAULT '0',
   `archived` tinyint(1) UNSIGNED NOT NULL DEFAULT '0',

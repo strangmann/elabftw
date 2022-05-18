@@ -216,11 +216,6 @@
         />
         <label for='use_markdown'>{{ 'Disable the rich text editor and write Markdown directly'|trans }}</label>
         <br>
-        <input id='use_ove' type='checkbox' name='use_ove'
-          {{ App.Users.userData.use_ove == '1' ? " checked='checked'" }}
-        />
-        <label for='use_ove'>{{ 'Enable the plasmid viewer'|trans }}</label>
-        <br>
         <input id='use_isodate' type='checkbox' name='use_isodate'
           {{ App.Users.userData.use_isodate == '1' ? " checked='checked'" }}
         />
@@ -381,7 +376,7 @@
           <td>{{ key.name }}</td>
           <td>{{ key.can_write ? 'Read/Write'|trans : 'Read Only'|trans }}</td>
           <td>{{ key.created_at }}</td>
-          <td><a class='clickable' data-action='destroy-apikey' title='{{ 'Delete'|trans }}' data-apikeyid='{{ key.id }}'><i class='fas fa-trash-alt fa-2x'></i></a></td>
+          <td><a data-action='destroy-apikey' title='{{ 'Delete'|trans }}' data-apikeyid='{{ key.id }}'><i class='fas fa-trash-alt fa-2x'></i></a></td>
         </tr>
       {% endfor %}
     </tbody>

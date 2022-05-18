@@ -20,12 +20,9 @@
   <link rel='apple-touch-icon' href='app/img/apple-touch-icon.png' />
   <link rel='apple-touch-icon-precomposed' href='app/img/apple-touch-icon-precomposed.png'>
   <title>{{ block('title') }} - eLabFTW</title>
-
-  {% if App.Users.userData.use_ove %}
-      <!-- load open vector editor -->
-      <link rel='stylesheet' type='text/css' href='assets/ove/main.css?v={{ v }}'>
-      <script defer src='assets/ove/open-vector-editor.min.js?v={{ v }}'></script>
-  {% endif %}
+  <!-- load open vector editor -->
+  <link rel='stylesheet' type='text/css' href='assets/ove/main.css?v={{ v }}'>
+  <script defer src='assets/ove/open-vector-editor.min.js?v={{ v }}'></script>
 
   <!-- see builder.js to see what gets inside these files -->
   <!-- CSS -->
@@ -131,7 +128,7 @@
 </nav>
 
 <!-- SHOW FAVTAGS PANEL -->
-<a class='clickable float-left' data-action='toggle-favtags' id='favtags-opener' title='{{ 'Open favorite tags'|trans }}' hidden>
+<a class='float-left' data-action='toggle-favtags' id='favtags-opener' title='{{ 'Open favorite tags'|trans }}' hidden>
   <i class='fas fa-chevron-right fa-2x'></i>
 </a>
 <div class='real-container'>

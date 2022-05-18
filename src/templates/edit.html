@@ -165,7 +165,7 @@
   <input id='title_input' class='form-control' type='text' name='title' value='{{ Entity.entityData.title|raw }}' required />
 
   <!-- TAGS -->
-  <div class='row mb-2'>
+  <div class='row mb-2 mathjax-ignore'>
     <div class='col'>
       <i class='fas fa-tags fa-fw mr-1'></i><label for='createTagInput'>{{ 'Tags'|trans }}</label>
       <div class='tags form-inline'>
@@ -175,7 +175,7 @@
             {% set tagsIdArr = Entity.entityData.tags_id|split(',') %}
             {% set tagsValueArr = Entity.entityData.tags|split('|') %}
             {% for tag in tagsValueArr -%}
-              <a class='tag mr-1 clickable hover-danger' data-action='unreference-tag' data-tagid='{{ tagsIdArr[loop.index0] }}'>{{ tag|raw }}</a>
+              <a class='tag mr-1 hover-danger' data-action='unreference-tag' data-tagid='{{ tagsIdArr[loop.index0] }}'>{{ tag|raw }}</a>
             {%- endfor -%}
           {% endif %}
         </div>
@@ -214,7 +214,7 @@
 {% include 'json-editor.html' %}
 
 <!-- DOODLE -->
-<section class='box' id='doodle-anchor'>
+<section class='box'>
   <h3 data-action='toggle-next' data-icon='doodleDivIcon' class='d-inline'><i id='doodleDivIcon' class='fas fa-chevron-circle-down'></i> <i class='fas fa-fw fa-paint-brush'></i> {{ 'Draw something'|trans }}</h3>
   <div id='doodleDiv' hidden class='mt-2' data-save-hidden='doodleDiv'>
     <div class='row'>
@@ -241,6 +241,7 @@
           <button id='clearCanvas' class='button btn btn-danger'>{{ 'Clear'|trans }}</button>
           <button id='saveCanvas' class='button btn btn-primary' data-type='{{ Entity.type }}' data-id='{{ Entity.id }}'>{{ 'Save'|trans }}</button>
         <p>
+        <p>{{ 'Use %sCtrl%s + click to add text'|trans|format('<kbd>', '</kbd>')|raw }}</p>
       </div>
     </div>
   </div>
