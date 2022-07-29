@@ -634,9 +634,9 @@ class ApiController implements ControllerInterface
         // now we know the id and type of the entity
         // so get the Entity to check for read permissions
         if ($uploadData['type'] === 'experiments') {
-            $Entity = new Experiments($this->Users, (int) $uploadData['item_id']);
+            $Entity = new Experiments($this->Users, $uploadData['item_id']);
         } elseif ($uploadData['type'] === 'items') {
-            $Entity = new Items($this->Users, (int) $uploadData['item_id']);
+            $Entity = new Items($this->Users, $uploadData['item_id']);
         } else {
             return new Response('Invalid upload id', 400);
         }

@@ -91,7 +91,7 @@ class Permissions
         }
 
         // if the vis. setting is a team group, check we are in the group
-        if (Check::id((int) $this->item['canread']) !== false && $this->TeamGroups->isInTeamGroup((int) $this->Users->userData['userid'], (int) $this->item['canread'])) {
+        if (Check::id((int) $this->item['canread']) !== false && $this->TeamGroups->isInTeamGroup($this->Users->userData['userid'], (int) $this->item['canread'])) {
             return array('read' => true, 'write' => $write);
         }
 
@@ -116,7 +116,7 @@ class Permissions
     {
         // locked entity cannot be written to
         // only the locker can unlock an entity
-        if ($this->item['locked'] && ($this->item['lockedby'] !== (int) $this->Users->userData['userid'])) {
+        if ($this->item['locked'] && ($this->item['lockedby'] !== $this->Users->userData['userid'])) {
             return false;
         }
 
@@ -148,11 +148,11 @@ class Permissions
 
         // if the vis. setting is a team group, check we are in the group
         if (Check::id((int) $this->item['canwrite']) !== false) {
-            return $this->TeamGroups->isInTeamGroup((int) $this->Users->userData['userid'], (int) $this->item['canwrite']);
+            return $this->TeamGroups->isInTeamGroup($this->Users->userData['userid'], (int) $this->item['canwrite']);
         }
 
         // if we own the entity, we have write access on it for sure
-        if ($this->item['userid'] === (int) $this->Users->userData['userid']) {
+        if ($this->item['userid'] === $this->Users->userData['userid']) {
             return true;
         }
 
@@ -166,7 +166,7 @@ class Permissions
                 }
             } else { // experiment
                 $Owner = new Users($this->item['userid']);
-                if ($this->Teams->hasCommonTeamWithCurrent((int) $Owner->userData['userid'], (int) $this->Users->userData['team'])) {
+                if ($this->Teams->hasCommonTeamWithCurrent($Owner->userData['userid'], (int) $this->Users->userData['team'])) {
                     return true;
                 }
             }
