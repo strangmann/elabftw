@@ -822,7 +822,7 @@ class ApiController implements ControllerInterface
         foreach ($itemsTypesArr as $itemsTypes) {
             $validIds[] = $itemsTypes['category_id'];
         }
-        if (!in_array((string) $this->id, $validIds, true)) {
+        if (!in_array($this->id, $validIds, true)) {
             return new Response('Cannot create an item with an item type id not in your team!', 403);
         }
 
